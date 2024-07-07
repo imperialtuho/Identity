@@ -22,7 +22,7 @@ namespace Identity.Api.Middlewares.Authentication
         /// <summary>
         /// The IdentityUrl.
         /// </summary>
-        public static string IdentityUrl { get; set; }
+        public static string? IdentityUrl { get; set; }
 
         /// <summary>
         /// The Memorycache.
@@ -40,6 +40,11 @@ namespace Identity.Api.Middlewares.Authentication
         private const string Unauthorized = "Unauthorized";
 
         /// <summary>
+        /// The Bearer.
+        /// </summary>
+        private const string Bearer = "Bearer";
+
+        /// <summary>
         /// The IHttpClientFactory.
         /// </summary>
         private readonly IHttpClientFactory _httpClientFactory;
@@ -52,7 +57,6 @@ namespace Identity.Api.Middlewares.Authentication
         /// <param name="encoder">The encoder.</param>
         /// <param name="cache">The cache.</param>
         /// <param name="httpClientFactory">The httpClientFactory.</param>
-        /// <param name="next">The delegate next.</param>
         public AuthenticationMiddlewareHandler(
             IOptionsMonitor<AuthenticationMiddlewareOptions> options,
             ILoggerFactory logger,
@@ -71,23 +75,24 @@ namespace Identity.Api.Middlewares.Authentication
         /// <returns>Task{AuthenticateResult}</returns>
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            if (!Request.Headers.ContainsKey("Authorization"))
+            if (!Request.Headers.TryGetValue("Authorization", out Microsoft.Extensions.Primitives.StringValues value))
             {
                 return AuthenticateResult.Fail(Unauthorized);
             }
 
-            string? authorizationHeader = Request.Headers["Authorization"];
+            string? authorizationHeader = value;
+
             if (string.IsNullOrEmpty(authorizationHeader))
             {
                 return AuthenticateResult.NoResult();
             }
 
-            if (!authorizationHeader.StartsWith("bearer", StringComparison.OrdinalIgnoreCase))
+            if (!authorizationHeader.StartsWith(Bearer, StringComparison.OrdinalIgnoreCase))
             {
                 return AuthenticateResult.Fail(Unauthorized);
             }
 
-            string? token = authorizationHeader.Substring("bearer".Length).Trim();
+            string? token = authorizationHeader.Substring(Bearer.Length).Trim();
 
             if (string.IsNullOrEmpty(token))
             {
@@ -149,7 +154,8 @@ namespace Identity.Api.Middlewares.Authentication
             }
             catch (SecurityTokenExpiredException ex)
             {
-                _logger.LogError(ex, $"Call to {nameof(GetIdentityFromTokenAsync)} failed with {nameof(SecurityTokenExpiredException)}");
+                string errorMessage = "Call to {0} failed with {1}";
+                _logger.LogError(ex, errorMessage, nameof(GetIdentityFromTokenAsync), nameof(SecurityTokenExpiredException));
 
                 if (!isRetry)
                 {
@@ -157,12 +163,14 @@ namespace Identity.Api.Middlewares.Authentication
                     return await GetIdentityFromTokenAsync(token, true);
                 }
 
-                throw;
+                throw new SecurityTokenExpiredException();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Call to {nameof(GetIdentityFromTokenAsync)} failed with message: {ex.Message}");
-                throw;
+                string errorMessage = "Call to {0} failed with message: {1}";
+                _logger.LogError(ex, errorMessage, nameof(GetIdentityFromTokenAsync), ex.Message);
+
+                throw new UnhandledException();
             }
         }
 
@@ -180,12 +188,12 @@ namespace Identity.Api.Middlewares.Authentication
                 }
 
                 using HttpClient client = _httpClientFactory.CreateClient();
-                HttpResponseMessage response = await client.GetAsync($"{IdentityUrl}/api/settings");
+                HttpResponseMessage response = await client.GetAsync($"{IdentityUrl}auth/settings");
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var settingsJson = await response.Content.ReadAsStringAsync();
-                    var settings = JsonConvert.DeserializeObject<JwtSettings>(settingsJson);
+                    string? settingsJson = await response.Content.ReadAsStringAsync();
+                    JwtSettings? settings = JsonConvert.DeserializeObject<JwtSettings>(settingsJson);
 
                     if (settings != null)
                     {
@@ -200,6 +208,7 @@ namespace Identity.Api.Middlewares.Authentication
             catch (Exception ex)
             {
                 _logger.LogError(ex, ex.Message);
+
                 return default;
             }
         }

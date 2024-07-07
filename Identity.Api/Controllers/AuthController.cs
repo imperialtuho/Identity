@@ -88,6 +88,10 @@ namespace Identity.Api.Controllers
         [AllowAnonymous]
         public ActionResult<JwtSettings> GetJwtSettings(string password)
         {
+            if (string.IsNullOrEmpty(password))
+            {
+                return BadRequest($"{nameof(password)} is null or empty!");
+            }
 
             JwtSettings settings = jwtSettings.Value;
 
