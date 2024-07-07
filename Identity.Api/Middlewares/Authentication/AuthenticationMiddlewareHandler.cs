@@ -179,7 +179,7 @@ namespace Identity.Api.Middlewares.Authentication
 
                 var content = new StringContent(AesEncryptionHelper.Encrypt(appSettings.Password, appSettings.Password), Encoding.UTF8, "application/json");
 
-                HttpResponseMessage response = await client.PostAsync($"{IdentityUrl}settings", content);
+                HttpResponseMessage response = await client.PostAsync($"{IdentityUrl}settings/jwt", content);
 
                 if (response.IsSuccessStatusCode)
                 {

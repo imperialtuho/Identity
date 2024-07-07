@@ -19,22 +19,22 @@ namespace Identity.Api.Controllers
         /// </summary>
         /// <param name="password">The password.</param>
         /// <returns>JwtSettings.</returns>
-        [HttpPost("settings")]
+        [HttpPost("jwt")]
         [AllowAnonymous]
-        public ActionResult<JwtSettings> GetJwtSettings([FromBody] string password = "")
+        public ActionResult<JwtSettings> GetJwtSettings([FromBody] string? password)
         {
-            JwtSettings settings = jwtSettings.Value;
-
-            if (settings == null)
+            if (string.IsNullOrEmpty(password))
             {
-                return NotFound($"{nameof(JwtSettings)} is missing!");
+                return BadRequest($"{nameof(password)} was not provided!");
             }
+
+            JwtSettings settings = jwtSettings.Value;
 
             string? decriptedPassword = AesEncryptionHelper.Decrypt(password, settings.Password);
 
-            if (decriptedPassword.Equals(settings.Password, StringComparison.Ordinal))
+            if (!decriptedPassword.Equals(settings.Password, StringComparison.Ordinal))
             {
-                return BadRequest($"{nameof(password)} is wrong!");
+                return BadRequest($"{nameof(password)} is invalid!");
             }
 
             settings.Key = AesEncryptionHelper.Encrypt(settings.Key, password);

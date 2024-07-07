@@ -1,7 +1,10 @@
-﻿namespace Identity.Application.Configurations.Settings
+﻿using System.Text.Json.Serialization;
+
+namespace Identity.Application.Configurations.Settings
 {
     public class JwtSettings
     {
+        [JsonIgnore]
         public string Subject { get; set; }
 
         public string Issuer { get; set; }
@@ -10,10 +13,13 @@
 
         public string Key { get; set; }
 
+        [JsonIgnore]
         public string TokenValidityInSeconds { get; set; }
 
+        [JsonIgnore]
         public string RefreshTokenValidityInDays { get; set; }
 
+        [JsonIgnore]
         public string Password { get; set; }
     }
 }
