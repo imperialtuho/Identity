@@ -9,5 +9,7 @@
         public IList<string>? AvailableClaimPolicies { get; set; }
 
         public string? ProviderName { get; set; }
+
+        public string Password { get; set; }
     }
 }

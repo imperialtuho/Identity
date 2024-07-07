@@ -1,17 +1,14 @@
-﻿using Identity.Application.Configurations.Settings;
-using Identity.Application.Dtos.Users;
+﻿using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Services;
-using Identity.Domain.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace Identity.Api.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/[controller]")]
-    public class AuthController(IAuthService authSerivce, IOptions<JwtSettings> jwtSettings) : ControllerBase
+    public class AuthController(IAuthService authSerivce) : ControllerBase
     {
         /// <summary>
         /// Login.
@@ -78,31 +75,6 @@ namespace Identity.Api.Controllers
             {
                 throw new UnhandledException(ex.Message);
             }
-        }
-
-        /// <summary>
-        /// Get JWT settings for API consumer.
-        /// </summary>
-        /// <returns>JwtSettings.</returns>
-        [HttpGet("settings")]
-        [AllowAnonymous]
-        public ActionResult<JwtSettings> GetJwtSettings(string password)
-        {
-            if (string.IsNullOrEmpty(password))
-            {
-                return BadRequest($"{nameof(password)} is null or empty!");
-            }
-
-            JwtSettings settings = jwtSettings.Value;
-
-            if (settings == null)
-            {
-                return NotFound($"{nameof(JwtSettings)} is missing!");
-            }
-
-            settings.Key = AesEncryptionHelper.Encrypt(settings.Key, "Jesus");
-
-            return Ok(jwtSettings.Value);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Identity.Application.Configurations.Settings;
+using Identity.Domain.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -12,22 +13,32 @@ using System.Text.Encodings.Web;
 
 namespace Identity.Api.Middlewares.Authentication
 {
-    public class AuthenticationMiddlewareHandler : AuthenticationHandler<AuthenticationMiddlewareOptions>
+    /// <summary>
+    /// The AuthenticationMiddlewareHandler constructor.
+    /// </summary>
+    /// <param name="options">The options.</param>
+    /// <param name="applicationSettings">The applicationSettings.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="encoder">The encoder.</param>
+    /// <param name="cache">The cache.</param>
+    /// <param name="httpClientFactory">The httpClientFactory.</param>
+    public class AuthenticationMiddlewareHandler(
+        IOptionsMonitor<AuthenticationMiddlewareOptions> options,
+        IOptions<ApplicationSettings> applicationSettings,
+        ILoggerFactory logger,
+        UrlEncoder encoder,
+        IMemoryCache cache,
+        IHttpClientFactory httpClientFactory) : AuthenticationHandler<AuthenticationMiddlewareOptions>(options, logger, encoder)
     {
         /// <summary>
         /// The logger.
         /// </summary>
-        private readonly ILogger _logger;
+        private readonly ILogger _logger = logger.CreateLogger<AuthenticationMiddlewareHandler>();
 
         /// <summary>
         /// The IdentityUrl.
         /// </summary>
         public static string? IdentityUrl { get; set; }
-
-        /// <summary>
-        /// The Memorycache.
-        /// </summary>
-        private readonly IMemoryCache _cache;
 
         /// <summary>
         /// The cacheKey.
@@ -45,34 +56,9 @@ namespace Identity.Api.Middlewares.Authentication
         private const string Bearer = "Bearer";
 
         /// <summary>
-        /// The IHttpClientFactory.
-        /// </summary>
-        private readonly IHttpClientFactory _httpClientFactory;
-
-        /// <summary>
-        /// The AuthenticationMiddlewareHandler constructor.
-        /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="logger">The logger.</param>
-        /// <param name="encoder">The encoder.</param>
-        /// <param name="cache">The cache.</param>
-        /// <param name="httpClientFactory">The httpClientFactory.</param>
-        public AuthenticationMiddlewareHandler(
-            IOptionsMonitor<AuthenticationMiddlewareOptions> options,
-            ILoggerFactory logger,
-            UrlEncoder encoder,
-            IMemoryCache cache,
-            IHttpClientFactory httpClientFactory) : base(options, logger, encoder)
-        {
-            _cache = cache;
-            _logger = logger.CreateLogger<AuthenticationMiddlewareHandler>();
-            _httpClientFactory = httpClientFactory;
-        }
-
-        /// <summary>
         /// Handle Authenticate Async.
         /// </summary>
-        /// <returns>Task{AuthenticateResult}</returns>
+        /// <returns>Task{AuthenticateResult}.</returns>
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             if (!Request.Headers.TryGetValue("Authorization", out Microsoft.Extensions.Primitives.StringValues value))
@@ -182,24 +168,29 @@ namespace Identity.Api.Middlewares.Authentication
         {
             try
             {
-                if (_cache.TryGetValue(CacheKey, out JwtSettings? cacheSettings))
+                ApplicationSettings appSettings = applicationSettings.Value;
+
+                if (cache.TryGetValue(CacheKey, out JwtSettings? cacheSettings))
                 {
                     return cacheSettings;
                 }
 
-                using HttpClient client = _httpClientFactory.CreateClient();
-                HttpResponseMessage response = await client.GetAsync($"{IdentityUrl}auth/settings");
+                using HttpClient client = httpClientFactory.CreateClient();
+
+                var content = new StringContent(AesEncryptionHelper.Encrypt(appSettings.Password, appSettings.Password), Encoding.UTF8, "application/json");
+
+                HttpResponseMessage response = await client.PostAsync($"{IdentityUrl}settings", content);
 
                 if (response.IsSuccessStatusCode)
                 {
                     string? settingsJson = await response.Content.ReadAsStringAsync();
-                    JwtSettings? settings = JsonConvert.DeserializeObject<JwtSettings>(settingsJson);
+                    JwtSettings? jwtSettings = JsonConvert.DeserializeObject<JwtSettings>(settingsJson);
 
-                    if (settings != null)
+                    if (jwtSettings != null)
                     {
-                        _cache.Set(CacheKey, settings, TimeSpan.FromDays(1));
+                        cache.Set(CacheKey, jwtSettings, TimeSpan.FromDays(1));
 
-                        return settings;
+                        return jwtSettings;
                     }
                 }
 
@@ -219,7 +210,7 @@ namespace Identity.Api.Middlewares.Authentication
         /// <returns>Void</returns>
         public void RemoveJwtSettingsCache()
         {
-            _cache.Remove(CacheKey);
+            cache.Remove(CacheKey);
         }
     }
 }
