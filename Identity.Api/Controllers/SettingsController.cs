@@ -23,9 +23,16 @@ namespace Identity.Api.Controllers
         [AllowAnonymous]
         public ActionResult<JwtSettings> GetJwtSettings([FromBody] string? password)
         {
+            string inValidPassword = $"{nameof(password)} is invalid!";
+
             if (string.IsNullOrEmpty(password))
             {
                 return BadRequest($"{nameof(password)} was not provided!");
+            }
+
+            if (!CheckingHelper.IsBase64String(password))
+            {
+                return BadRequest(inValidPassword);
             }
 
             JwtSettings settings = jwtSettings.Value;
@@ -34,7 +41,7 @@ namespace Identity.Api.Controllers
 
             if (!decriptedPassword.Equals(settings.Password, StringComparison.Ordinal))
             {
-                return BadRequest($"{nameof(password)} is invalid!");
+                return BadRequest(inValidPassword);
             }
 
             settings.Key = AesEncryptionHelper.Encrypt(settings.Key, password);

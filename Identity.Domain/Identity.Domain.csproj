@@ -7,8 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Interfaces\" />
-    <Folder Include="SharedKernel\" />
+    <Compile Remove="Interfaces\**" />
+    <Compile Remove="SharedKernel\**" />
+    <EmbeddedResource Remove="Interfaces\**" />
+    <EmbeddedResource Remove="SharedKernel\**" />
+    <None Remove="Interfaces\**" />
+    <None Remove="SharedKernel\**" />
   </ItemGroup>
 
   <ItemGroup>
