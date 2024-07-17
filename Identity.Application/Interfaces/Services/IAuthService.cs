@@ -16,7 +16,7 @@ namespace Identity.Application.Interfaces.Services
 
         Task<TokenDto> GoogleLogin(ExternalAuthDto externalAuth);
 
-        Task<bool> AddUserToRolesAsync(string email, IList<string> roles);
+        Task<bool> AddUserToRolesAsync(string userId, string email, IList<string> roles);
 
         Task<bool> AddClaimToUserAsync(string email, string claimType, string claimValue);
 
@@ -29,6 +29,5 @@ namespace Identity.Application.Interfaces.Services
         Task<TokenDto> Verify2FaTokenAsync(string email, string token);
 
         Task<TokenDto> VerifyEmailTokenAsync(string email, string token);
-
     }
 }

@@ -221,7 +221,6 @@ namespace Identity.Application.Services
             long tokenExpiryUnix = long.Parse(principal.Claims.Single(p => p.Type == JwtRegisteredClaimNames.Exp).Value);
             DateTime tokenExpiryDate = DateTime.UnixEpoch.AddSeconds(tokenExpiryUnix);
 
-
             if (tokenExpiryDate > DateTime.Now)
             {
                 throw new InvalidOperationException("The access token has not expired yet.");
@@ -343,9 +342,11 @@ namespace Identity.Application.Services
             throw new ArgumentException("User doesn't exists.");
         }
 
-        public async Task<bool> AddUserToRolesAsync(string email, IList<string> roles)
+        public async Task<bool> AddUserToRolesAsync(string userId, string email, IList<string> roles)
         {
-            User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException($"User with {email} doesn't exists.");
+            User? user = (await _userManager.FindByEmailAsync(email)
+                       ?? await _userManager.FindByIdAsync(userId))
+                       ?? throw new ArgumentException($"User with {email} doesn't exists.");
 
             ValidateRoles(roles);
 

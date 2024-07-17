@@ -18,13 +18,13 @@ namespace Identity.Api.Controllers
         /// </summary>
         /// <param name="request">The request.</param>
         /// <returns>System.Task{ActionResult}.</returns>
-        [HttpPost("roles")]
+        [HttpPost("{userId}/roles")]
         [Authorize($"{SuperAdmin}")]
-        public async Task<ActionResult> AddRoleToUserAsync([FromBody] RoleDto request)
+        public async Task<ActionResult> AddRoleToUserAsync([FromRoute] string userId, [FromBody] RoleDto request)
         {
             try
             {
-                return Ok(await authService.AddUserToRolesAsync(request.Email, request.Roles));
+                return Ok(await authService.AddUserToRolesAsync(userId, request.Email, request.Roles));
             }
             catch (Exception ex)
             {
@@ -32,7 +32,7 @@ namespace Identity.Api.Controllers
             }
         }
 
-        [HttpGet("roles/user/{userId}")]
+        [HttpGet("{userId}/roles")]
         [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = "All")]
         public async Task<ActionResult> GetUserRolesByUserIdAsync(string userId)
         {
