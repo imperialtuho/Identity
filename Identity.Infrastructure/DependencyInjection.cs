@@ -29,7 +29,7 @@ namespace Identity.Infrastructure
         {
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("Identity.Api"));
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("Identity.Api"));
             });
 
             services.AddIdentityCore<User>(options =>
