@@ -56,6 +56,7 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             };
         }
 
+        //TODO create kid in the header to validate.
         private JwtSecurityToken CreateJwtToken(Claim[] claims, SigningCredentials credentials, DateTime expiration) =>
             new JwtSecurityToken(
                 _jwtSettings.Issuer,

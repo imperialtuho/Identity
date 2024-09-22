@@ -1,4 +1,5 @@
 ﻿using Identity.Application.Configurations.Settings;
+using Identity.Application.Dtos;
 using Identity.Domain.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,14 +22,10 @@ namespace Identity.Api.Controllers
         /// <returns>JwtSettings.</returns>
         [HttpPost("jwt")]
         [AllowAnonymous]
-        public ActionResult<JwtSettings> GetJwtSettings([FromBody] string? password)
+        public ActionResult<JwtSettings> GetJwtSettings([FromBody] PasswordDto passwordDto)
         {
+            string password = passwordDto.Password;
             string inValidPassword = $"{nameof(password)} is invalid!";
-
-            if (string.IsNullOrEmpty(password))
-            {
-                return BadRequest($"{nameof(password)} was not provided!");
-            }
 
             if (!CheckingHelper.IsBase64String(password))
             {
@@ -46,7 +43,7 @@ namespace Identity.Api.Controllers
 
             settings.Key = AesEncryptionHelper.Encrypt(settings.Key, password);
 
-            return Ok(jwtSettings.Value);
+            return Ok(settings);
         }
     }
 }

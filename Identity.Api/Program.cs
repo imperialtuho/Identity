@@ -1,12 +1,18 @@
+using Identity.Api.Helpers;
 using Identity.Application;
+using Identity.Application.Configurations.Settings;
 using Identity.Domain.Constants;
 using Identity.Infrastructure;
+using Microsoft.Extensions.Options;
 
 namespace Identity.Api
 {
     public class Program
     {
-        protected static void Main(string[] args)
+        protected Program()
+        { }
+
+        protected static async Task Main(string[] args)
         {
             var _environmentName = ApplicationConstants.EnvironmentName;
 
@@ -22,7 +28,8 @@ namespace Identity.Api
 
             var logger = loggerFactory.CreateLogger<Program>();
 
-            logger.LogInformation($"Environment name: {_environmentName}");
+            string information = "Environment name: {0}";
+            logger.LogInformation(message: information, args: _environmentName);
 
             builder.Configuration
                 .SetBasePath(builder.Environment.ContentRootPath)
@@ -39,8 +46,10 @@ namespace Identity.Api
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            var appSettings = app.Services.GetRequiredService<IOptions<ApplicationSettings>>().Value;
+
+            // Configure Swagger.
+            if (!appSettings.IsProductionMode)
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
@@ -52,7 +61,9 @@ namespace Identity.Api
 
             app.MapControllers();
 
-            app.Run();
+            await DatabaseHelper.SeedAsync(app);
+
+            await app.RunAsync();
         }
     }
 }
