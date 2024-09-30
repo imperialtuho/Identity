@@ -41,8 +41,6 @@ namespace Identity.Api.Controllers
                 return BadRequest(inValidPassword);
             }
 
-            settings.Key = AesEncryptionHelper.Encrypt(settings.Key, password);
-
             return Ok(settings);
         }
     }

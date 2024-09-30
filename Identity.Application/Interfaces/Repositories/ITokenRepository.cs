@@ -6,7 +6,7 @@ namespace Identity.Application.Interfaces.Repositories
 {
     public interface ITokenRepository
     {
-        Task<TokenDto> CreateTokenAsync(User user, IList<string> roles, IList<Claim>? additionalClaims = null);
+        Task<TokenDto> CreateTokenAsync(User user, IList<string> roles, IList<Claim>? additionalClaims = null, int tenantId = 0);
 
         ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token);
     }

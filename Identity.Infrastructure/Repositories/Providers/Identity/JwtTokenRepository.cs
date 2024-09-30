@@ -25,7 +25,7 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             _refreshTokenRepository = refreshTokenRepository;
         }
 
-        public async Task<TokenDto> CreateTokenAsync(User user, IList<string> roles, IList<Claim>? additionalClaims = null)
+        public async Task<TokenDto> CreateTokenAsync(User user, IList<string> roles, IList<Claim>? additionalClaims = null, int tenantId = 0)
         {
             var expiration = DateTime.UtcNow.AddSeconds(double.Parse(_jwtSettings.TokenValidityInSeconds));
 
@@ -36,6 +36,8 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             );
 
             var tokenHandler = new JwtSecurityTokenHandler();
+
+            token.Header.Add("TenantId", tenantId);
 
             var refreshToken = new RefreshToken
             {
@@ -56,7 +58,6 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             };
         }
 
-        //TODO create kid in the header to validate.
         private JwtSecurityToken CreateJwtToken(Claim[] claims, SigningCredentials credentials, DateTime expiration) =>
             new JwtSecurityToken(
                 _jwtSettings.Issuer,
@@ -96,7 +97,12 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             return [.. claims];
         }
 
-        private SigningCredentials CreateSigningCredentials() => new(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)), SecurityAlgorithms.HmacSha256);
+        private SigningCredentials CreateSigningCredentials()
+        {
+            SigningCredentials signingCredentials = new(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)) { KeyId = _jwtSettings.Kid }, SecurityAlgorithms.HmacSha256Signature);
+
+            return signingCredentials;
+        }
 
         private static string GenerateRefreshToken()
         {
@@ -117,7 +123,7 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
                 ValidateIssuerSigningKey = true,
                 ValidAudience = _jwtSettings.Audience,
                 ValidIssuer = _jwtSettings.Issuer,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key))
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)) { KeyId = _jwtSettings.Kid}
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();

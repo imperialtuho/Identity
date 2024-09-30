@@ -21,5 +21,7 @@ namespace Identity.Application.Configurations.Settings
 
         [JsonIgnore]
         public string Password { get; set; }
+
+        public string Kid { get; set; }
     }
 }
