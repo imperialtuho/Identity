@@ -23,22 +23,22 @@ namespace Identity.Api.Helpers
 
                 if (!await roleManager.RoleExistsAsync(SuperAdmin))
                 {
-                    await roleManager.CreateAsync(new Role(Guid.NewGuid().ToString(), SuperAdmin));
+                    await roleManager.CreateAsync(new Role(Guid.NewGuid(), SuperAdmin));
                 }
 
                 if (!await roleManager.RoleExistsAsync(Admin))
                 {
-                    await roleManager.CreateAsync(new Role(Guid.NewGuid().ToString(), Admin));
+                    await roleManager.CreateAsync(new Role(Guid.NewGuid(), Admin));
                 }
 
                 if (!await roleManager.RoleExistsAsync(ApiUser))
                 {
-                    await roleManager.CreateAsync(new Role(Guid.NewGuid().ToString(), ApiUser));
+                    await roleManager.CreateAsync(new Role(Guid.NewGuid(), ApiUser));
                 }
 
                 if (!await roleManager.RoleExistsAsync(DefaultRoleValue.User))
                 {
-                    await roleManager.CreateAsync(new Role(Guid.NewGuid().ToString(), DefaultRoleValue.User));
+                    await roleManager.CreateAsync(new Role(Guid.NewGuid(), DefaultRoleValue.User));
                 }
 
                 // Users
@@ -46,6 +46,10 @@ namespace Identity.Api.Helpers
                 string adminUserEmail = "imperialtuho0410@gmail.com";
                 string userName = "admin-tuho";
                 string password = "imperialtuhoAdmin@0410";
+                string firstName = "Tu";
+                string lastName = "Ho";
+                string displayName = "Imperial Tu Ho";
+                string bio = "Russian Bias";
 
                 User? adminUser = await userManager.FindByEmailAsync(adminUserEmail);
 
@@ -53,9 +57,13 @@ namespace Identity.Api.Helpers
                 {
                     var newSuperAdmin = new User()
                     {
-                        Id = Guid.NewGuid().ToString(),
+                        Id = Guid.NewGuid(),
                         UserName = userName,
                         Email = adminUserEmail,
+                        DisplayName = displayName,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        Bio = bio,
                         EmailConfirmed = true,
                         CreatedBy = SuperAdmin,
                         ModifiedBy = SuperAdmin,

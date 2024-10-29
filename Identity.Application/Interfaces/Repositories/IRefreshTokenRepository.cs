@@ -2,16 +2,12 @@
 
 namespace Identity.Application.Interfaces.Repositories
 {
-    public interface IRefreshTokenRepository
+    public interface IRefreshTokenRepository : IEntityFrameworkGenericRepository<RefreshToken>
     {
-        Task AddAsync(RefreshToken token);
-
         Task<RefreshToken?> FindByTokenAsync(string token);
 
-        Task InvalidateUserTokens(string userId);
+        Task InvalidateUserTokens(Guid userId);
 
         void Update(RefreshToken token);
-
-        Task CompleteAsync();
     }
 }

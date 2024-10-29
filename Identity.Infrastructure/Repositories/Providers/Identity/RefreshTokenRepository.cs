@@ -1,27 +1,17 @@
-﻿using Identity.Application.Interfaces.Repositories;
+﻿using Identity.Application.Configurations.Database;
+using Identity.Application.Interfaces.Repositories;
 using Identity.Domain.Entities;
+using Identity.Infrastructure.Configurations;
 using Identity.Infrastructure.Database;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Repositories.Providers.Identity
 {
-    public class RefreshTokenRepository : IRefreshTokenRepository
+    public class RefreshTokenRepository : DbSqlConnectionEFRepositoryBase<ApplicationDbContext, RefreshToken>, IRefreshTokenRepository
     {
-        private readonly ApplicationDbContext _dbContext;
-
-        public RefreshTokenRepository(ApplicationDbContext dbContext)
+        public RefreshTokenRepository(ISqlConnectionFactory sqlConnectionFactory, IHttpContextAccessor httpContextAccessor) : base(sqlConnectionFactory, httpContextAccessor)
         {
-            _dbContext = dbContext;
-        }
-
-        public async Task AddAsync(RefreshToken token)
-        {
-            await _dbContext.RefreshTokens.AddAsync(token);
-        }
-
-        public async Task CompleteAsync()
-        {
-            await _dbContext.SaveChangesAsync();
         }
 
         public async Task<RefreshToken?> FindByTokenAsync(string token)
@@ -29,7 +19,7 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             return await _dbContext.RefreshTokens.FirstOrDefaultAsync(t => t.Token == token);
         }
 
-        public async Task InvalidateUserTokens(string userId)
+        public async Task InvalidateUserTokens(Guid userId)
         {
             IList<RefreshToken> tokens = await _dbContext.RefreshTokens.Where(rt => rt.UserId == userId).ToListAsync();
 

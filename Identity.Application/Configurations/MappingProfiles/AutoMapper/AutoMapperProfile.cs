@@ -11,6 +11,7 @@ namespace Identity.Application.Configurations.MappingProfiles.AutoMapper
         {
             CreateMap<UserDto, User>().ReverseMap();
             CreateMap<Menu, MenuDto>().ReverseMap();
+            CreateMap<RegisterDto, UserDto>().ReverseMap();
         }
     }
 }

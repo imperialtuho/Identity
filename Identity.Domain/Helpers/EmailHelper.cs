@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Mail;
 
-namespace IdentityAPI.Domain.Helpers
+namespace Identity.Domain.Helpers
 {
     public static class EmailHelper
     {
@@ -13,7 +13,7 @@ namespace IdentityAPI.Domain.Helpers
             }
 
             var mailMessage = new MailMessage();
-            mailMessage.From = new MailAddress("imperialtuho-admin@test.com");
+            mailMessage.From = new MailAddress("imperialtuho-admin@yopmail.com");
             mailMessage.To.Add(new MailAddress(userEmail));
 
             mailMessage.Subject = "Two Factor Code";

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Identity.Infrastructure.Database
 {
-    public class ApplicationDbContext : IdentityDbContext<User, Role, string>
+    public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
     {
         public DbSet<RefreshToken> RefreshTokens { get; set; }
 

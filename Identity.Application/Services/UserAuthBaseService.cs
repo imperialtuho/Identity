@@ -1,4 +1,5 @@
-﻿using Identity.Application.Configurations.Settings;
+﻿using AutoMapper;
+using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Domain.Entities;
@@ -15,18 +16,21 @@ namespace Identity.Application.Services
         protected readonly IRefreshTokenRepository _refreshTokenRepository;
         protected readonly ITokenRepository _tokenRepository;
         protected readonly ApplicationSettings _applicationSettings;
+        protected readonly IMapper _mapper;
 
         public UserAuthBaseService(UserManager<User> userManager,
             IPasswordHasher<User> passwordHasher,
             IRefreshTokenRepository refreshTokenRepository,
             ITokenRepository tokenRepository,
-            IOptions<ApplicationSettings> applicationSettings)
+            IOptions<ApplicationSettings> applicationSettings,
+            IMapper mapper)
         {
             _userManager = userManager;
             _passwordHasher = passwordHasher;
             _refreshTokenRepository = refreshTokenRepository;
             _tokenRepository = tokenRepository;
             _applicationSettings = applicationSettings.Value;
+            _mapper = mapper;
         }
 
         private const int NAME_LENGTH = 1;

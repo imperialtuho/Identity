@@ -17,33 +17,42 @@ namespace Identity.Api.Controllers
         /// Adds roles.
         /// </summary>
         /// <param name="request">The request.</param>
-        /// <returns>System.Task{ActionResult}.</returns>
+        /// <returns>System.Task{IActionResult}.</returns>
         [HttpPost("{userId}/roles")]
         [Authorize($"{SuperAdmin}")]
-        public async Task<ActionResult> AddRoleToUserAsync([FromRoute] string userId, [FromBody] RoleDto request)
+        public async Task<IActionResult> AddRoleToUserAsync([FromRoute] string userId, [FromBody] RoleDto request)
         {
-            try
-            {
-                return Ok(await authService.AddUserToRolesAsync(userId, request.Email, request.Roles));
-            }
-            catch (Exception ex)
-            {
-                throw new UnhandledException(ex.Message);
-            }
+            return Ok(await authService.AddUserToRolesAsync(userId, request.Email, request.Roles));
         }
 
+        /// <summary>
+        /// Gets user roles by user id.
+        /// </summary>
+        /// <param name="userId">The userId.</param>
+        /// <returns>GetUserRolesByIdDto.</returns>
+        /// <exception cref="UnhandledException"></exception>
         [HttpGet("{userId}/roles")]
         [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = "All")]
-        public async Task<ActionResult> GetUserRolesByUserIdAsync(string userId)
+        public async Task<IActionResult> GetUserRolesByUserIdAsync(string userId)
         {
-            try
-            {
-                return Ok(await userService.GetUserRolesByIdAsync(userId));
-            }
-            catch (Exception ex)
-            {
-                throw new UnhandledException(ex.Message);
-            }
+            GetUserRolesByIdDto result = await userService.GetUserRolesByIdAsync(userId);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get user by id.
+        /// </summary>
+        /// <param name="id">The id.</param>
+        /// <returns>UserDto.</returns>
+        /// <exception cref="UnhandledException"></exception>
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetByIdAsync(string id)
+        {
+            UserDto result = await userService.GetByIdAsync(id);
+
+            return Ok(result);
         }
     }
 }

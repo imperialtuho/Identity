@@ -1,16 +1,29 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 
 namespace Identity.Domain.Entities
 {
-    public class User : IdentityUser<string>
+    public class User : IdentityUser<Guid>
     {
+        public string FirstName { get; set; }
+
+        public string LastName { get; set; }
+
+        public string DisplayName { get; set; }
+
+        [StringLength(500)]
+        public string? Bio { get; set; }
+
+        [Url]
+        public string? ProfilePictureUrl { get; set; }
+
         public DateTime? CreatedDate { get; set; }
 
-        public string CreatedBy { get; set; }
+        public string? CreatedBy { get; set; }
 
-        public DateTime? ModifiedDate { get; set; } = null!;
+        public DateTime? ModifiedDate { get; set; }
 
-        public string ModifiedBy { get; set; } = null!;
+        public string? ModifiedBy { get; set; }
 
         public bool IsDeleted { get; set; }
 

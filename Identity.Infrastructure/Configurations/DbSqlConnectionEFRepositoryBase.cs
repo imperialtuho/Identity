@@ -1,43 +1,19 @@
 ﻿using Identity.Application.Configurations.Database;
+using Identity.Domain.Entities;
 using Identity.Domain.Enums;
 using Identity.Infrastructure.Repositories.Providers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Configurations
 {
-    public abstract class DbSqlConnectionEFRepositoryBase<C, T> : EFGenericRepository<C, T>
-        where T : class
+    public abstract class DbSqlConnectionEFRepositoryBase<C, T> : EntityFrameworkGenericRepository<C, T>
+        where T : BaseEntity<Guid>
         where C : DbContext, new()
     {
-        protected DbSqlConnectionEFRepositoryBase(ISqlConnectionFactory sqlConnectionFactory) : base(CreateDbContextOptions(sqlConnectionFactory), sqlConnectionFactory)
+        protected DbSqlConnectionEFRepositoryBase(ISqlConnectionFactory sqlConnectionFactory, IHttpContextAccessor httpContextAccessor)
+            : base(CreateDbContextOptions(sqlConnectionFactory, ConnectionStringType.SqlServerConnection), sqlConnectionFactory, httpContextAccessor)
         {
-            sqlConnectionFactory.SetConnectionStringType(ConnectionStringType.DefaultConnection);
-        }
-
-        private static DbContextOptions<C> CreateDbContextOptions(ISqlConnectionFactory sqlConnectionFactory)
-        {
-            var (connectionString, dbType) = sqlConnectionFactory.GetConnectionStringAndDbType();
-            var optionsBuilder = new DbContextOptionsBuilder<C>();
-
-            if (connectionString != null)
-            {
-                switch (dbType)
-                {
-                    case ConnectionStringType.PostgresqlConnection:
-                        optionsBuilder.UseNpgsql(connectionString);
-                        break;
-
-                    case ConnectionStringType.SqlServerConnection:
-                        optionsBuilder.UseSqlServer(connectionString);
-                        break;
-
-                    default:
-                        optionsBuilder.UseSqlServer(connectionString);
-                        break;
-                }
-            }
-
-            return optionsBuilder.Options;
         }
     }
 }

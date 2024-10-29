@@ -1,10 +1,11 @@
-﻿using Identity.Application.Configurations.Settings;
+﻿using AutoMapper;
+using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Application.Interfaces.Services;
 using Identity.Domain.Entities;
 using Identity.Domain.Exceptions;
-using IdentityAPI.Domain.Helpers;
+using Identity.Domain.Helpers;
 using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,8 @@ namespace Identity.Application.Services
             IPasswordHasher<User> passwordHasher,
             ITokenRepository tokenRepository,
             IRefreshTokenRepository refreshTokenRepository,
-            IOptions<ApplicationSettings> applicationSettings) : base(userManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings)
+            IOptions<ApplicationSettings> applicationSettings,
+            IMapper mapper) : base(userManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper)
         {
         }
 
@@ -121,7 +123,7 @@ namespace Identity.Application.Services
 
             return new GetUserRolesByIdDto
             {
-                Id = user.Id,
+                Id = user.Id.ToString(),
                 Name = user.UserName!,
                 Email = user.Email!,
                 Roles = roles

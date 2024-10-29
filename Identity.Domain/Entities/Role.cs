@@ -2,12 +2,12 @@
 
 namespace Identity.Domain.Entities
 {
-    public class Role : IdentityRole<string>
+    public class Role : IdentityRole<Guid>
     {
         public Role()
         { }
 
-        public Role(string id, string name) : this()
+        public Role(Guid id, string name) : this()
         {
             Id = id;
             Name = name;

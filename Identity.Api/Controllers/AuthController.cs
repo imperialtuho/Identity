@@ -19,19 +19,12 @@ namespace Identity.Api.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> LoginAsync([FromBody] LoginDto model, [FromQuery] bool isEmailConfirmRequired)
         {
-            try
+            if (isEmailConfirmRequired)
             {
-                if (isEmailConfirmRequired)
-                {
-                    return Ok(await authSerivce.LoginRequireEmailConfirmAsync(model.Email, model.Password));
-                }
+                return Ok(await authSerivce.LoginRequireEmailConfirmAsync(model.Email, model.Password));
+            }
 
-                return Ok(await authSerivce.LoginAsync(model.Email, model.Password));
-            }
-            catch (Exception ex)
-            {
-                throw new UnhandledException(ex.Message);
-            }
+            return Ok(await authSerivce.LoginAsync(model.Email, model.Password));
         }
 
         /// <summary>
@@ -43,19 +36,12 @@ namespace Identity.Api.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> RegisterAsync([FromBody] RegisterDto model, bool isEmailConfirmRequired)
         {
-            try
+            if (isEmailConfirmRequired)
             {
-                if (isEmailConfirmRequired)
-                {
-                    return Ok(await authSerivce.RegisterWithEmailConfirmAsync(model));
-                }
+                return Ok(await authSerivce.RegisterWithEmailConfirmAsync(model));
+            }
 
-                return Ok(await authSerivce.RegisterAsync(model));
-            }
-            catch (Exception ex)
-            {
-                throw new UnhandledException(ex.Message);
-            }
+            return Ok(await authSerivce.RegisterAsync(model));
         }
 
         /// <summary>
@@ -67,14 +53,7 @@ namespace Identity.Api.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> RefreshTokenAsync([FromBody] TokenDto token)
         {
-            try
-            {
-                return Ok(await authSerivce.RefreshTokenAsync(token));
-            }
-            catch (Exception ex)
-            {
-                throw new UnhandledException(ex.Message);
-            }
+            return Ok(await authSerivce.RefreshTokenAsync(token));
         }
     }
 }

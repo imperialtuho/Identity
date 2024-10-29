@@ -2,12 +2,16 @@
 {
     public sealed class UnhandledException : Exception
     {
-        public UnhandledException(string? message = "Unexpected error occured.")
+        private const string DefaultMessage = "Unexpected error occured.";
+
+        public UnhandledException(string? message = DefaultMessage)
             : base(message)
         {
         }
 
-        public UnhandledException(string? message, Exception? innerException) : base(message, innerException)
-        { }
+        public UnhandledException(string? message, Exception? innerException)
+            : base(message, innerException)
+        {
+        }
     }
 }

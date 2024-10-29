@@ -2,7 +2,7 @@
 
 namespace Identity.Application.Interfaces.Repositories
 {
-    public interface IMenuRepository : IEFGenericRepository<Menu>
+    public interface IMenuRepository : IEntityFrameworkGenericRepository<Menu>
     {
         Task<Menu> GetByIdAsync(string id, bool includeDeleted);
 

@@ -1,7 +1,11 @@
-﻿using Identity.Application.Configurations.Settings;
+﻿using Identity.Application.Configurations.Database;
+using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Domain.Entities;
+using Identity.Infrastructure.Configurations;
+using Identity.Infrastructure.Database;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,15 +15,14 @@ using System.Text;
 
 namespace Identity.Infrastructure.Repositories.Providers.Identity
 {
-    public class JwtTokenRepository : ITokenRepository
+    public class JwtTokenRepository : DbSqlConnectionEFRepositoryBase<ApplicationDbContext, RefreshToken>, ITokenRepository
     {
         private readonly JwtSettings _jwtSettings;
 
         private readonly IRefreshTokenRepository _refreshTokenRepository;
 
-        public JwtTokenRepository(
-            IOptions<JwtSettings> options,
-            IRefreshTokenRepository refreshTokenRepository)
+        public JwtTokenRepository(IOptions<JwtSettings> options, ISqlConnectionFactory sqlConnectionFactory, IHttpContextAccessor httpContextAccessor, IRefreshTokenRepository refreshTokenRepository)
+            : base(sqlConnectionFactory, httpContextAccessor)
         {
             _jwtSettings = options.Value;
             _refreshTokenRepository = refreshTokenRepository;
@@ -49,7 +52,7 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             };
 
             await _refreshTokenRepository.AddAsync(refreshToken);
-            await _refreshTokenRepository.CompleteAsync();
+            await _refreshTokenRepository.CommitAsync();
 
             return new TokenDto
             {
@@ -75,20 +78,20 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             {
                 new (JwtRegisteredClaimNames.Sub, _jwtSettings.Subject),
                 new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new (JwtRegisteredClaimNames.Iat, iat.ToString()),
+                new (JwtRegisteredClaimNames.Iat, iat.ToString(), ClaimValueTypes.Integer64),
                 new (ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new (ClaimTypes.Name, user.UserName!),
                 new (ClaimTypes.Email, user.Email!)
             };
 
-            foreach (var role in roles)
+            foreach (string role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
             if (additionalClaims != null && additionalClaims.Any())
             {
-                foreach (var claim in additionalClaims)
+                foreach (Claim claim in additionalClaims)
                 {
                     claims.Add(claim);
                 }
@@ -123,7 +126,7 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
                 ValidateIssuerSigningKey = true,
                 ValidAudience = _jwtSettings.Audience,
                 ValidIssuer = _jwtSettings.Issuer,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)) { KeyId = _jwtSettings.Kid}
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)) { KeyId = _jwtSettings.Kid }
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();

@@ -2,7 +2,7 @@
 
 namespace Identity.Domain.Entities
 {
-    public class Menu : BaseEntity<string>
+    public class Menu : BaseEntity<Guid>
     {
         public Menu()
         {
@@ -22,7 +22,7 @@ namespace Identity.Domain.Entities
         [StringLength(50)]
         public string Url { get; set; }
 
-        public string? ParentId { get; set; } = null;
+        public Guid? ParentId { get; set; } = null;
 
         public int? OrderNumber { get; set; }
 

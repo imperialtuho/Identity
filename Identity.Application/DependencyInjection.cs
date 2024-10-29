@@ -1,4 +1,5 @@
-﻿using Identity.Application.Configurations.MappingProfiles.Mapster;
+﻿using Identity.Application.Configurations.MappingProfiles.AutoMapper;
+using Identity.Application.Configurations.MappingProfiles.Mapster;
 using Identity.Application.Configurations.Settings;
 using Identity.Application.Interfaces.Services;
 using Identity.Application.Services;
@@ -26,8 +27,6 @@ namespace Identity.Application
             const int MaxRequestBodySize = 100000000;
             string _myAllowSpecificOrigins = ApplicationConstants.MyAllowSpecificOrigins;
             // Adds system services
-            services.AddHttpContextAccessor();
-
             // Dependency injection support for Mapster
             // https://github.com/MapsterMapper/Mapster/wiki/Dependency-Injection
             var config = new TypeAdapterConfig();
@@ -35,6 +34,7 @@ namespace Identity.Application
             config.Scan(Assembly.GetExecutingAssembly());
             services.AddSingleton(config);
             services.AddScoped<IMapper, ServiceMapper>();
+            services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 
             services.AddHttpContextAccessor();
             services.AddTransient<IPrincipal>(provider => provider.GetService<IHttpContextAccessor>()!.HttpContext!.User);

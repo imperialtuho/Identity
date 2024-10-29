@@ -20,7 +20,7 @@ namespace Identity.Application.Services
 
         public async Task CompleteAsync()
         {
-            await _refreshTokenRepository.CompleteAsync();
+            await _refreshTokenRepository.CommitAsync();
         }
 
         public async Task<RefreshToken?> FindByTokenAsync(string token)
@@ -28,7 +28,7 @@ namespace Identity.Application.Services
             return await _refreshTokenRepository.FindByTokenAsync(token);
         }
 
-        public async Task InvalidateUserTokens(string userId)
+        public async Task InvalidateUserTokens(Guid userId)
         {
             await _refreshTokenRepository.InvalidateUserTokens(userId);
         }

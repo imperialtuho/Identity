@@ -1,4 +1,5 @@
 using Identity.Api.Helpers;
+using Identity.Api.Middlewares.ExceptionHandler;
 using Identity.Application;
 using Identity.Application.Configurations.Settings;
 using Identity.Domain.Constants;
@@ -53,6 +54,18 @@ namespace Identity.Api
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+            }
+
+            if (!ExceptionHandlerMiddleware.IsProductionEnvironment(builder.Environment, _environmentName))
+            {
+                app.UseDeveloperExceptionPage();
+                app.UseExceptionHandler(
+                    ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(true, logger));
+            }
+            else
+            {
+                app.UseExceptionHandler(
+                    ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(false, logger));
             }
 
             app.UseHttpsRedirection();

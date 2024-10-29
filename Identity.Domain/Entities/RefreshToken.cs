@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Identity.Domain.Entities
 {
-    public class RefreshToken
+    public class RefreshToken : BaseEntity<Guid>
     {
         [Key]
         public string Token { get; set; }
@@ -18,7 +18,7 @@ namespace Identity.Domain.Entities
 
         public bool Invalidated { get; set; }
 
-        public string UserId { get; set; }
+        public Guid UserId { get; set; }
 
         [ForeignKey("UserId")]
         public User User { get; set; }

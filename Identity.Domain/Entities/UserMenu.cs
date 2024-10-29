@@ -2,9 +2,9 @@
 {
     public class UserMenu
     {
-        public string UserId { get; set; }
+        public Guid UserId { get; set; }
 
-        public string MenuId { get; set; }
+        public Guid MenuId { get; set; }
 
         public User User { get; set; }
 

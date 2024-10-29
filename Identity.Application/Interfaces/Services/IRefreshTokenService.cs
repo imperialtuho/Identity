@@ -8,7 +8,7 @@ namespace Identity.Application.Interfaces.Services
 
         Task<RefreshToken?> FindByTokenAsync(string token);
 
-        Task InvalidateUserTokens(string userId);
+        Task InvalidateUserTokens(Guid userId);
 
         void Update(RefreshToken token);
 

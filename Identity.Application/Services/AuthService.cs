@@ -1,4 +1,5 @@
-﻿using Identity.Application.Configurations.Settings;
+﻿using AutoMapper;
+using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Application.Interfaces.Services;
@@ -6,8 +7,7 @@ using Identity.Domain.Common;
 using Identity.Domain.Constants;
 using Identity.Domain.Entities;
 using Identity.Domain.Exceptions;
-using IdentityAPI.Domain.Constants;
-using IdentityAPI.Domain.Helpers;
+using Identity.Domain.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
@@ -22,7 +22,8 @@ namespace Identity.Application.Services
             IPasswordHasher<User> passwordHasher,
             ITokenRepository tokenRepository,
             IRefreshTokenRepository refreshTokenRepository,
-            IOptions<ApplicationSettings> applicationSettings) : base(userManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings)
+            IOptions<ApplicationSettings> applicationSettings,
+            IMapper mapper) : base(userManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper)
         {
         }
 
@@ -30,19 +31,9 @@ namespace Identity.Application.Services
 
         public async Task<TokenDto> RegisterAsync(RegisterDto registerModel)
         {
-            User? foundUserByEmail = await _userManager.FindByEmailAsync(registerModel.Email);
-            User? foundUserByUserName = await _userManager.FindByNameAsync(registerModel.UserName);
+            await ValidateRegisterModelAsync(registerModel);
 
-            if (foundUserByEmail != null || foundUserByUserName != null)
-            {
-                throw new InvalidOperationException($"User with {registerModel.Email} or {registerModel.UserName} exists, please try another email.");
-            }
-
-            var userDto = new UserDto
-            {
-                UserName = registerModel.UserName,
-                Email = registerModel.Email
-            };
+            UserDto userDto = _mapper.Map<UserDto>(registerModel);
 
             IList<string>? roles = registerModel.Roles;
             IList<ClaimDto>? claims = registerModel.Claims;
@@ -73,19 +64,9 @@ namespace Identity.Application.Services
 
         public async Task<bool> RegisterWithEmailConfirmAsync(RegisterDto registerModel)
         {
-            User? foundUserByEmail = await _userManager.FindByEmailAsync(registerModel.Email);
-            User? foundUserByUserName = await _userManager.FindByNameAsync(registerModel.UserName);
+            await ValidateRegisterModelAsync(registerModel);
 
-            if (foundUserByEmail != null || foundUserByUserName != null)
-            {
-                throw new InvalidOperationException($"User with {registerModel.Email} or {registerModel.UserName} exists, please try another email.");
-            }
-
-            var userDto = new UserDto
-            {
-                Email = registerModel.Email,
-                UserName = registerModel.UserName,
-            };
+            UserDto userDto = _mapper.Map<UserDto>(registerModel);
 
             IList<string>? roles = registerModel.Roles;
             IList<ClaimDto>? claims = registerModel.Claims;
@@ -218,6 +199,7 @@ namespace Identity.Application.Services
         public async Task<TokenDto> RefreshTokenAsync(TokenDto token)
         {
             ClaimsPrincipal? principal = _tokenRepository.GetPrincipalFromExpiredToken(token.Token) ?? throw new InvalidCredentialException("Invalid token.");
+
             long tokenExpiryUnix = long.Parse(principal.Claims.Single(p => p.Type == JwtRegisteredClaimNames.Exp).Value);
             DateTime tokenExpiryDate = DateTime.UnixEpoch.AddSeconds(tokenExpiryUnix);
 
@@ -227,6 +209,7 @@ namespace Identity.Application.Services
             }
 
             string jti = principal.Claims.Single(p => p.Type == JwtRegisteredClaimNames.Jti).Value;
+
             RefreshToken? storedRefreshToken = await _refreshTokenRepository.FindByTokenAsync(token.RefreshToken);
 
             if (storedRefreshToken == null ||
@@ -239,11 +222,14 @@ namespace Identity.Application.Services
             }
 
             storedRefreshToken.Used = true;
+
             _refreshTokenRepository.Update(storedRefreshToken);
-            await _refreshTokenRepository.CompleteAsync();
+            await _refreshTokenRepository.CommitAsync();
 
             string? email = principal.Claims.Single(p => p.Type == ClaimTypes.Email).Value;
+
             User? user = await _userManager.FindByEmailAsync(email) ?? throw new NotFoundException($"User with {email} not found!");
+
             IList<string> roles = await _userManager.GetRolesAsync(user);
             TokenDto resource = await _tokenRepository.CreateTokenAsync(user, roles);
 
@@ -255,7 +241,7 @@ namespace Identity.Application.Services
             User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException($"User with {email} doesn't exist.");
 
             await _refreshTokenRepository.InvalidateUserTokens(user.Id);
-            await _refreshTokenRepository.CompleteAsync();
+            await _refreshTokenRepository.CommitAsync();
 
             return true;
         }
@@ -388,21 +374,39 @@ namespace Identity.Application.Services
         private User InitializeUser(UserDto user, IList<string>? roles)
         {
             string defaultCreatedBy = DefaultRoleValue.User;
-            string defaultModifiedBy = DefaultRoleValue.User;
 
             if (roles?.FirstOrDefault(role => role.Equals(DefaultRoleValue.Admin)) != null)
             {
                 defaultCreatedBy = DefaultRoleValue.SuperAdmin;
-                defaultModifiedBy = DefaultRoleValue.SuperAdmin;
             }
 
-            return new User
+            User result = _mapper.Map<User>(user);
+            result.CreatedDate = DateTime.UtcNow;
+            result.CreatedBy = defaultCreatedBy;
+
+            return result;
+        }
+
+        private async Task ValidateRegisterModelAsync(RegisterDto registerModel)
+        {
+            User? foundUserByEmail = await _userManager.FindByEmailAsync(registerModel.Email);
+            User? foundUserByUserName = await _userManager.FindByNameAsync(registerModel.UserName);
+            bool isDisplayNameTaken = _userManager.Users.Any(u => u.DisplayName.Equals(registerModel.DisplayName));
+
+            if (foundUserByEmail != null)
             {
-                UserName = user.UserName,
-                Email = user.Email,
-                CreatedBy = defaultCreatedBy,
-                ModifiedBy = defaultModifiedBy,
-            };
+                throw new InvalidOperationException($"A user with email '{registerModel.Email}' already exists. Please try another email.");
+            }
+
+            if (foundUserByUserName != null)
+            {
+                throw new InvalidOperationException($"A user with username '{registerModel.UserName}' already exists. Please try another username.");
+            }
+
+            if (isDisplayNameTaken)
+            {
+                throw new InvalidOperationException($"The display name '{registerModel.DisplayName}' is already taken. Please try another display name.");
+            }
         }
 
         #endregion Internal Processes
