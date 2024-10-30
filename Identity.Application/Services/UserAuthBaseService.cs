@@ -66,12 +66,12 @@ namespace Identity.Application.Services
         {
             if (string.IsNullOrEmpty(name))
             {
-                throw new ArgumentException("Name is required.");
+                throw new ArgumentException($"{nameof(name)} is required.");
             }
 
             if (name.Length < NAME_LENGTH)
             {
-                throw new ArgumentException($"Name must have at least {NAME_LENGTH} characters.");
+                throw new ArgumentException($"{nameof(name)} must have at least {NAME_LENGTH} characters.");
             }
         }
 
@@ -79,14 +79,14 @@ namespace Identity.Application.Services
         {
             if (string.IsNullOrEmpty(email))
             {
-                throw new ArgumentException("Email is required.");
+                throw new ArgumentException($"{nameof(email)} is required.");
             }
 
             string emailPattern = @"^([\w\.\-]+)@([\w\-]+)((\.(\w){2,3})+)$";
 
             if (!Regex.IsMatch(email, emailPattern))
             {
-                throw new ArgumentException("Invalid email.");
+                throw new ArgumentException($"Email {email} is invalid");
             }
         }
 
@@ -101,9 +101,9 @@ namespace Identity.Application.Services
 
             if (!Regex.IsMatch(password, passwordPattern))
             {
-                throw new ArgumentException("Password must have at least 8 characters, " +
-                    "at least 1 uppercase letter, at least 1 lowercase letter, " +
-                    "at least 1 digit and at least 1 special character.");
+                throw new ArgumentException(@"Password must have at least 8 characters,
+                                              at least 1 uppercase letter, at least 1 lowercase letter,
+                                              at least 1 digit and at least 1 special character.");
             }
         }
     }

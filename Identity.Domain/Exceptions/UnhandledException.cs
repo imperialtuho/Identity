@@ -1,10 +1,10 @@
-﻿namespace Identity.Domain.Exceptions
+﻿using Identity.Domain.Constants;
+
+namespace Identity.Domain.Exceptions
 {
     public sealed class UnhandledException : Exception
     {
-        private const string DefaultMessage = "Unexpected error occured.";
-
-        public UnhandledException(string? message = DefaultMessage)
+        public UnhandledException(string? message = ResponseMessage.UnknownError)
             : base(message)
         {
         }

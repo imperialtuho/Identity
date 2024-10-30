@@ -11,8 +11,9 @@
         public const string BadRequest = "The request is invalid";
         public const string InvalidOperation = "The operation is not allowed";
         public const string InvalidArgument = "The arguments are not valid";
-        public const string InvalidCredentialException = "Invalid credential";
+        public const string InvalidCredentialException = "Invalid credential: {0} is incorrected";
         public const string AuthenticationException = "Authentication failed";
         public const string EmptyOrNullException = "{0} can not be empty or null";
+        public const string EmailNotValidated = "Email {0} has not been validated";
     }
 }

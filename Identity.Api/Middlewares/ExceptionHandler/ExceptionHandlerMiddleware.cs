@@ -23,44 +23,45 @@ namespace Identity.Api.Middlewares.ExceptionHandler
                     InnerExceptionMessage = specificException.InnerException?.Message,
                     Path = exceptionHandlerPathFeature.Path,
                     StackTrace = isDevelopment ? specificException.StackTrace : string.Empty,
-                    Data = specificException.Data
                 };
 
-                httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
 
                 switch (specificException)
                 {
-                    case NotFoundException _:
-
-                        responseObject.ErrorCode = HttpStatusCode.NotFound;
-                        httpContext.Response.StatusCode = (int)(HttpStatusCode.NotFound);
-                        break;
-
+                    case ArgumentException _:
                     case InvalidOperationException _:
-
+                    case InvalidCredentialException _:
                         responseObject.ErrorCode = HttpStatusCode.BadRequest;
-                        httpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                        statusCode = HttpStatusCode.BadRequest;
                         break;
 
                     case AuthenticationException _:
-
                         responseObject.ErrorCode = HttpStatusCode.Unauthorized;
-                        httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                        statusCode = HttpStatusCode.Unauthorized;
+                        break;
+
+                    case NotFoundException _:
+                        responseObject.ErrorCode = HttpStatusCode.NotFound;
+                        statusCode = HttpStatusCode.NotFound;
+                        break;
+
+                    case ConflictException _:
+                        responseObject.ErrorCode = HttpStatusCode.Conflict;
+                        statusCode = HttpStatusCode.Conflict;
                         break;
 
                     case UnhandledException _:
-
                         responseObject.ErrorCode = HttpStatusCode.InternalServerError;
-                        httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        statusCode = HttpStatusCode.InternalServerError;
                         break;
                 }
 
                 string result = JsonConvert.SerializeObject(responseObject);
                 httpContext.Response.ContentType = "application/json";
-
+                httpContext.Response.StatusCode = (int)statusCode;
                 await httpContext.Response.WriteAsync(result);
-            }
-            );
+            });
         }
 
         public static bool IsProductionEnvironment(IWebHostEnvironment env, string environmentName)
@@ -76,19 +77,9 @@ namespace Identity.Api.Middlewares.ExceptionHandler
             public Guid CorrelationId { get; set; } = Guid.NewGuid();
 
             /// <summary>
-            /// The Status.
-            /// </summary>
-            public bool Status { get; set; } = true;
-
-            /// <summary>
             /// The ErrorCode.
             /// </summary>
             public HttpStatusCode ErrorCode { get; set; }
-
-            /// <summary>
-            /// The Message.
-            /// </summary>
-            public string? Message { get; set; }
 
             /// <summary>
             /// The inner exception message.
@@ -96,9 +87,14 @@ namespace Identity.Api.Middlewares.ExceptionHandler
             public string? InnerExceptionMessage { get; set; }
 
             /// <summary>
+            /// The Message.
+            /// </summary>
+            public string? Message { get; set; }
+
+            /// <summary>
             /// The error's Path.
             /// </summary>
-            public string Path { get; set; }
+            public string? Path { get; set; }
 
             /// <summary>
             /// The StackTrace.
@@ -106,9 +102,9 @@ namespace Identity.Api.Middlewares.ExceptionHandler
             public string? StackTrace { get; set; }
 
             /// <summary>
-            /// The Data.
+            /// The Status.
             /// </summary>
-            public object? Data { get; set; }
+            public bool Status { get; set; } = true;
         }
     }
 }

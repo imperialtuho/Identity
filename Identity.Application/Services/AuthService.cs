@@ -113,13 +113,13 @@ namespace Identity.Application.Services
                 throw new ArgumentException("Password cannot be empty.");
             }
 
-            User? loginUser = await _userManager.FindByEmailAsync(email) ?? throw new InvalidCredentialException(ResponseMessage.InvalidCredentialException);
+            User? loginUser = await _userManager.FindByEmailAsync(email) ?? throw new InvalidCredentialException(string.Format(ResponseMessage.InvalidCredentialException, nameof(email)));
 
             bool isPasswordMatched = await _userManager.CheckPasswordAsync(loginUser, password);
 
             if (!isPasswordMatched)
             {
-                throw new InvalidCredentialException(ResponseMessage.InvalidCredentialException);
+                throw new InvalidCredentialException(string.Format(ResponseMessage.InvalidCredentialException, nameof(password)));
             }
 
             IList<string> roles = await _userManager.GetRolesAsync(loginUser);
@@ -137,20 +137,20 @@ namespace Identity.Application.Services
 
             ValidateEmail(email);
 
-            User? loginUser = await _userManager.FindByEmailAsync(email) ?? throw new InvalidCredentialException(ResponseMessage.InvalidCredentialException);
+            User? loginUser = await _userManager.FindByEmailAsync(email) ?? throw new InvalidCredentialException(string.Format(ResponseMessage.InvalidCredentialException, nameof(email)));
 
             bool isEmailConfirmed = loginUser.EmailConfirmed;
 
             if (!isEmailConfirmed)
             {
-                throw new InvalidCredentialException(ResponseMessage.InvalidCredentialException);
+                throw new InvalidCredentialException(string.Format(ResponseMessage.EmailNotValidated, loginUser.Email));
             }
 
             bool isPasswordMatched = await _userManager.CheckPasswordAsync(loginUser, password);
 
             if (!isPasswordMatched)
             {
-                throw new InvalidCredentialException(ResponseMessage.InvalidCredentialException);
+                throw new InvalidCredentialException(string.Format(ResponseMessage.InvalidCredentialException, nameof(password)));
             }
 
             IList<string> roles = await _userManager.GetRolesAsync(loginUser);
@@ -165,23 +165,23 @@ namespace Identity.Application.Services
 
             if (string.IsNullOrEmpty(password))
             {
-                throw new ArgumentException("Password cannot be empty.");
+                throw new ArgumentException(string.Format(ResponseMessage.InvalidCredentialException, nameof(password)));
             }
 
-            User? loginUser = await _userManager.FindByEmailAsync(email) ?? throw new InvalidCredentialException($"Invalid credential.");
+            User? loginUser = await _userManager.FindByEmailAsync(email) ?? throw new InvalidCredentialException(string.Format(ResponseMessage.InvalidCredentialException, nameof(email)));
 
             bool isPasswordMatched = await _userManager.CheckPasswordAsync(loginUser, password);
 
             if (!isPasswordMatched)
             {
-                throw new InvalidCredentialException(ResponseMessage.InvalidCredentialException);
+                throw new InvalidCredentialException(string.Format(ResponseMessage.InvalidCredentialException, nameof(password)));
             }
 
             string token = await _userManager.GenerateTwoFactorTokenAsync(loginUser, TokenOptions.DefaultProvider);
 
             if (string.IsNullOrEmpty(token))
             {
-                throw new UnhandledException($"Cannot create token");
+                throw new UnhandledException($"Cannot create token, please try again!");
             }
 
             return EmailHelper.SendEmailTwoFactorCode(loginUser.Email!, token);
@@ -302,30 +302,20 @@ namespace Identity.Application.Services
 
         public async Task<bool> AddClaimToUserAsync(string email, string claimType, string claimValue)
         {
-            User? user = await _userManager.FindByEmailAsync(email);
+            User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException("User doesn't exists.");
 
-            if (user != null)
+            IList<string>? allowedClaims = _applicationSettings.AvailableClaimPolicies;
+
+            if (!allowedClaims!.Contains(claimValue))
             {
-                IList<string>? allowedClaims = _applicationSettings.AvailableClaimPolicies;
-
-                if (!allowedClaims!.Contains(claimValue))
-                {
-                    throw new InvalidOperationException($"Invalid Claims or Policy value try again!");
-                }
-
-                var claim = new Claim(claimType, claimValue);
-
-                IdentityResult result = await _userManager.AddClaimAsync(user, claim);
-
-                if (result.Succeeded)
-                {
-                    return true;
-                }
-
-                return false;
+                throw new InvalidOperationException($"Invalid Claims or Policy value try again!");
             }
 
-            throw new ArgumentException("User doesn't exists.");
+            var claim = new Claim(claimType, claimValue);
+
+            IdentityResult result = await _userManager.AddClaimAsync(user, claim);
+
+            return result.Succeeded;
         }
 
         public async Task<bool> AddUserToRolesAsync(string userId, string email, IList<string> roles)
