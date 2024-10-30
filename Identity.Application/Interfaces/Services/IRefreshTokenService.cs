@@ -6,12 +6,12 @@ namespace Identity.Application.Interfaces.Services
     {
         Task AddAsync(RefreshToken token);
 
+        Task CommitAsync();
+
         Task<RefreshToken?> FindByTokenAsync(string token);
 
         Task InvalidateUserTokens(Guid userId);
 
         void Update(RefreshToken token);
-
-        Task CompleteAsync();
     }
 }

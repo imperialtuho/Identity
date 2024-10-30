@@ -31,16 +31,12 @@ namespace Identity.Application.Services
 
         public async Task<TokenDto> RegisterAsync(RegisterDto registerModel)
         {
-            await ValidateRegisterModelAsync(registerModel);
-
             UserDto userDto = _mapper.Map<UserDto>(registerModel);
-
             IList<string>? roles = registerModel.Roles;
             IList<ClaimDto>? claims = registerModel.Claims;
 
             User newUser = InitializeUser(userDto, registerModel.Roles);
-
-            ValidateUser(userDto, registerModel.Password);
+            await ValidateModelAsync(newUser, registerModel.Password);
             ValidateRoles(roles);
             ValidateClaims(claims);
 
@@ -54,8 +50,8 @@ namespace Identity.Application.Services
             User? appUser = await _userManager.FindByEmailAsync(newUser.Email!) ?? throw new NotFoundException($"User with {newUser.Email} not found!");
             var addingRoles = roles != null && roles.Any() ? roles : [Roles.User];
 
-            await AddRoles(appUser, addingRoles);
-            await AddClaims(appUser, claims);
+            await AddRolesAsync(appUser, addingRoles);
+            await AddClaimsAsync(appUser, claims);
 
             IList<Claim>? addedClaims = await _userManager.GetClaimsAsync(appUser);
 
@@ -64,16 +60,13 @@ namespace Identity.Application.Services
 
         public async Task<bool> RegisterWithEmailConfirmAsync(RegisterDto registerModel)
         {
-            await ValidateRegisterModelAsync(registerModel);
-
             UserDto userDto = _mapper.Map<UserDto>(registerModel);
 
             IList<string>? roles = registerModel.Roles;
             IList<ClaimDto>? claims = registerModel.Claims;
 
             User newUser = InitializeUser(userDto, registerModel.Roles);
-
-            ValidateUser(userDto, registerModel.Password);
+            await ValidateModelAsync(newUser, registerModel.Password);
             ValidateRoles(roles);
             ValidateClaims(claims);
 
@@ -87,8 +80,8 @@ namespace Identity.Application.Services
             User? appUser = await _userManager.FindByEmailAsync(newUser.Email!) ?? throw new NotFoundException($"User with {newUser.Email} not found!");
             var addingRoles = roles != null && roles.Any() ? roles : [Roles.User];
 
-            await AddRoles(appUser, addingRoles);
-            await AddClaims(appUser, claims);
+            await AddRolesAsync(appUser, addingRoles);
+            await AddClaimsAsync(appUser, claims);
 
             string token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
 
@@ -236,7 +229,7 @@ namespace Identity.Application.Services
             return resource;
         }
 
-        public async Task<bool> InvalidateUserTokens(string email)
+        public async Task<bool> InvalidateUserTokensAsync(string email)
         {
             User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException($"User with {email} doesn't exist.");
 
@@ -335,7 +328,7 @@ namespace Identity.Application.Services
 
         #region Internal Processes
 
-        private async Task AddRoles(User user, IList<string> roles)
+        private async Task AddRolesAsync(User user, IList<string> roles)
         {
             IdentityResult? addRolesResult = await _userManager.AddToRolesAsync(user, roles);
 
@@ -345,7 +338,7 @@ namespace Identity.Application.Services
             }
         }
 
-        private async Task AddClaims(User user, IList<ClaimDto>? claimsInput)
+        private async Task AddClaimsAsync(User user, IList<ClaimDto>? claimsInput)
         {
             var claims = claimsInput?.Select(c => new Claim(c.Type, c.Value));
             var addClaimsResult = new IdentityResult();
@@ -375,28 +368,6 @@ namespace Identity.Application.Services
             result.CreatedBy = defaultCreatedBy;
 
             return result;
-        }
-
-        private async Task ValidateRegisterModelAsync(RegisterDto registerModel)
-        {
-            User? foundUserByEmail = await _userManager.FindByEmailAsync(registerModel.Email);
-            User? foundUserByUserName = await _userManager.FindByNameAsync(registerModel.UserName);
-            bool isDisplayNameTaken = _userManager.Users.Any(u => u.DisplayName.Equals(registerModel.DisplayName));
-
-            if (foundUserByEmail != null)
-            {
-                throw new InvalidOperationException($"A user with email '{registerModel.Email}' already exists. Please try another email.");
-            }
-
-            if (foundUserByUserName != null)
-            {
-                throw new InvalidOperationException($"A user with username '{registerModel.UserName}' already exists. Please try another username.");
-            }
-
-            if (isDisplayNameTaken)
-            {
-                throw new InvalidOperationException($"The display name '{registerModel.DisplayName}' is already taken. Please try another display name.");
-            }
         }
 
         #endregion Internal Processes

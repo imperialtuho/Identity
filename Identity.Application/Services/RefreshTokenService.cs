@@ -18,7 +18,7 @@ namespace Identity.Application.Services
             await _refreshTokenRepository.AddAsync(token);
         }
 
-        public async Task CompleteAsync()
+        public async Task CommitAsync()
         {
             await _refreshTokenRepository.CommitAsync();
         }

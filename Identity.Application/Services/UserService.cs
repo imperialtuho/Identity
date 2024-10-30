@@ -53,6 +53,21 @@ namespace Identity.Application.Services
             return user.Adapt<UserDto>();
         }
 
+        public async Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(string userId)
+        {
+            User? user = await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException($"User with id: {userId} could not be found!");
+
+            IList<string> roles = await _userManager.GetRolesAsync(user);
+
+            return new GetUserRolesByIdDto
+            {
+                Id = user.Id.ToString(),
+                Name = user.UserName!,
+                Email = user.Email!,
+                Roles = roles
+            };
+        }
+
         public async Task<bool> ResendVerificationEmail(string email)
         {
             User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException($"User with {email} doesn't exist.");
@@ -97,6 +112,24 @@ namespace Identity.Application.Services
             return false;
         }
 
+        public async Task<UserDto> UpdateAsync(string userId, UpdateUserRequest request)
+        {
+            User? currentUser = await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException($"User with id: {userId} not found!");
+
+            currentUser = request.Adapt(currentUser);
+
+            await ValidateModelAsync(currentUser, request.Password);
+
+            IdentityResult? updateResult = await _userManager.UpdateAsync(currentUser);
+
+            if (updateResult != null && updateResult.Succeeded)
+            {
+                return currentUser.Adapt<UserDto>();
+            }
+
+            throw new UnhandledException(updateResult?.ToString());
+        }
+
         public async Task<bool> UpdatePasswordAsync(string id, string newPassword)
         {
             User? currentUser = await _userManager.FindByIdAsync(id) ?? throw new NotFoundException($"User with id: {id} not found!");
@@ -113,21 +146,6 @@ namespace Identity.Application.Services
             }
 
             return true;
-        }
-
-        public async Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(string userId)
-        {
-            User? user = await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException($"User with id: {userId} could not be found!");
-
-            IList<string> roles = await _userManager.GetRolesAsync(user);
-
-            return new GetUserRolesByIdDto
-            {
-                Id = user.Id.ToString(),
-                Name = user.UserName!,
-                Email = user.Email!,
-                Roles = roles
-            };
         }
     }
 }

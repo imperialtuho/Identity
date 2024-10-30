@@ -54,5 +54,19 @@ namespace Identity.Api.Controllers
 
             return Ok(result);
         }
+
+        [HttpPut("{userId}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateAsync(string userId, UpdateUserRequest request)
+        {
+            if (!userId.Equals(request.Id))
+            {
+                return BadRequest("Id is not matched with request Id");
+            }
+
+            UserDto result = await userService.UpdateAsync(userId, request);
+
+            return Ok(result);
+        }
     }
 }

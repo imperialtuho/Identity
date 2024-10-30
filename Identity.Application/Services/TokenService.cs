@@ -16,7 +16,7 @@ namespace Identity.Application.Services
             _tokenRepository = tokenRepository;
         }
 
-        public async Task<TokenDto> CreateTokenAsync(UserDto user, IList<string> roles, IList<Claim>? additionalClaims = null)
+        public async Task<TokenDto> CreateAsync(UserDto user, IList<string> roles, IList<Claim>? additionalClaims = null)
         {
             return await _tokenRepository.CreateTokenAsync(user.Adapt<User>(), roles, additionalClaims);
         }
