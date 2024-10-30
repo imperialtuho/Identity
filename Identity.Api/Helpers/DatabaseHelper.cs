@@ -57,7 +57,6 @@ namespace Identity.Api.Helpers
                 {
                     var newSuperAdmin = new User()
                     {
-                        Id = Guid.NewGuid(),
                         UserName = userName,
                         Email = adminUserEmail,
                         DisplayName = displayName,
