@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Identity.Application.Dtos.Users
+﻿namespace Identity.Application.Dtos.Users
 {
     public class UserDto
     {
@@ -19,5 +17,7 @@ namespace Identity.Application.Dtos.Users
         public string? Bio { get; set; }
 
         public string? ProfilePictureUrl { get; set; }
+
+        public int? TenantId { get; set; }
     }
 }

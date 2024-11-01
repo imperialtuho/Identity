@@ -21,26 +21,29 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
 
         private readonly IRefreshTokenRepository _refreshTokenRepository;
 
-        public JwtTokenRepository(IOptions<JwtSettings> options, ISqlConnectionFactory sqlConnectionFactory, IHttpContextAccessor httpContextAccessor, IRefreshTokenRepository refreshTokenRepository)
-            : base(sqlConnectionFactory, httpContextAccessor)
+        public JwtTokenRepository(IOptions<JwtSettings> options,
+            ISqlConnectionFactory sqlConnectionFactory,
+            IHttpContextAccessor httpContextAccessor,
+            IRefreshTokenRepository refreshTokenRepository) : base(sqlConnectionFactory, httpContextAccessor)
         {
             _jwtSettings = options.Value;
             _refreshTokenRepository = refreshTokenRepository;
         }
 
-        public async Task<TokenDto> CreateTokenAsync(User user, IList<string> roles, IList<Claim>? additionalClaims = null, int tenantId = 0)
+        public async Task<TokenDto> CreateTokenAsync(User user, IList<string> roles, IList<Claim>? additionalClaims = null, int? tenantId = null)
         {
             var expiration = DateTime.UtcNow.AddSeconds(double.Parse(_jwtSettings.TokenValidityInSeconds));
 
-            JwtSecurityToken token = CreateJwtToken(
-                CreateClaims(user, roles, additionalClaims),
-                CreateSigningCredentials(),
-                expiration
-            );
+            JwtSecurityToken token = CreateJwtToken(CreateClaims(user, roles, additionalClaims), CreateSigningCredentials(), expiration);
 
             var tokenHandler = new JwtSecurityTokenHandler();
 
-            token.Header.Add("TenantId", tenantId);
+            var additionalHeaders = new Dictionary<string, object>()
+            {
+                { "TenantId", tenantId ?? DefaultTenantId }
+            };
+
+            AddHeadersToJwtHeader(token, additionalHeaders);
 
             var refreshToken = new RefreshToken
             {
@@ -56,63 +59,10 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
 
             return new TokenDto
             {
+                UserId = user.Id,
                 Token = tokenHandler.WriteToken(token),
                 RefreshToken = refreshToken.Token
             };
-        }
-
-        private JwtSecurityToken CreateJwtToken(Claim[] claims, SigningCredentials credentials, DateTime expiration) =>
-            new JwtSecurityToken(
-                _jwtSettings.Issuer,
-                _jwtSettings.Audience,
-                claims,
-                expires: expiration,
-                signingCredentials: credentials
-            );
-
-        private Claim[] CreateClaims(User user, IList<string> roles, IList<Claim>? additionalClaims = null)
-        {
-            long iat = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
-
-            var claims = new List<Claim>()
-            {
-                new (JwtRegisteredClaimNames.Sub, _jwtSettings.Subject),
-                new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new (JwtRegisteredClaimNames.Iat, iat.ToString(), ClaimValueTypes.Integer64),
-                new (ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new (ClaimTypes.Name, user.UserName!),
-                new (ClaimTypes.Email, user.Email!)
-            };
-
-            foreach (string role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
-            }
-
-            if (additionalClaims != null && additionalClaims.Any())
-            {
-                foreach (Claim claim in additionalClaims)
-                {
-                    claims.Add(claim);
-                }
-            }
-
-            return [.. claims];
-        }
-
-        private SigningCredentials CreateSigningCredentials()
-        {
-            SigningCredentials signingCredentials = new(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)) { KeyId = _jwtSettings.Kid }, SecurityAlgorithms.HmacSha256Signature);
-
-            return signingCredentials;
-        }
-
-        private static string GenerateRefreshToken()
-        {
-            var randomNumber = new byte[64];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
         }
 
         public ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token)
@@ -139,6 +89,68 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             }
 
             return principal;
+        }
+
+        private static string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[64];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
+
+        private void AddHeadersToJwtHeader(JwtSecurityToken token, IDictionary<string, object> headersToAdd)
+        {
+            foreach (KeyValuePair<string, object> header in headersToAdd)
+            {
+                // Avoid overwriting existing headers with the same key
+                if (!token.Header.ContainsKey(header.Key))
+                {
+                    token.Header.Add(header.Key, header.Value);
+                }
+            }
+        }
+
+        private Claim[] CreateClaims(User user, IList<string> roles, IList<Claim>? additionalClaims = null)
+        {
+            long iat = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
+
+            var claims = new List<Claim>()
+            {
+                new (JwtRegisteredClaimNames.Sub, _jwtSettings.Subject),
+                new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new (JwtRegisteredClaimNames.Iat, iat.ToString(), ClaimValueTypes.Integer64),
+                new (ClaimTypes.Sid, user.Id.ToString()),
+                new (ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new (ClaimTypes.Name, user.UserName!),
+                new (ClaimTypes.Email, user.Email!),
+                new ("TenantId", user.TenantId?.ToString() ?? DefaultTenantId.ToString())
+            };
+
+            foreach (string role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            if (additionalClaims != null && additionalClaims.Any())
+            {
+                foreach (Claim claim in additionalClaims)
+                {
+                    claims.Add(claim);
+                }
+            }
+
+            return [.. claims];
+        }
+
+        private JwtSecurityToken CreateJwtToken(Claim[] claims, SigningCredentials credentials, DateTime expiration)
+        {
+            return new JwtSecurityToken(_jwtSettings.Issuer, _jwtSettings.Audience, claims, expiration, signingCredentials: credentials);
+        }
+
+        private SigningCredentials CreateSigningCredentials()
+        {
+            return new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)) { KeyId = _jwtSettings.Kid }, SecurityAlgorithms.HmacSha256Signature);
         }
     }
 }

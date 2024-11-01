@@ -43,45 +43,66 @@ namespace Identity.Api.Helpers
 
                 // Users
                 var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<User>>();
-                string adminUserEmail = "imperialtuho0410@gmail.com";
-                string userName = "admin-tuho";
-                string password = "imperialtuhoAdmin@0410";
-                string firstName = "Tu";
-                string lastName = "Ho";
-                string displayName = "Imperial Tu Ho";
-                string bio = "Russian Bias";
 
-                User? adminUser = await userManager.FindByEmailAsync(adminUserEmail);
-
-                if (adminUser == null)
+                IList<User> users = [
+                new()
                 {
-                    var newSuperAdmin = new User()
+                    UserName = "admin-tuho",
+                    Email = "imperialtuho0410@gmail.com",
+                    DisplayName = "Imperial Tu Ho",
+                    FirstName = "Tu",
+                    LastName = "Ho",
+                    Bio = "Russian Bias",
+                    EmailConfirmed = true,
+                    CreatedBy = SuperAdmin,
+                    ModifiedBy = null,
+                    CreatedDate = DateTime.UtcNow,
+                    ModifiedDate = null,
+                    TenantId = 1,
+                    IsAdmin = true,
+                },
+                new()
+                {
+                    UserName = "ApiUser-Tenant-0",
+                    Email = "ApiTenant0@example.com",
+                    DisplayName = "ApiUser-Tenant-1",
+                    FirstName = "Api",
+                    LastName = "User",
+                    Bio = null,
+                    EmailConfirmed = true,
+                    CreatedBy = SuperAdmin,
+                    ModifiedBy = null,
+                    CreatedDate = DateTime.UtcNow,
+                    ModifiedDate = null,
+                    TenantId = 1,
+                    IsAdmin = false,
+                }];
+
+                foreach (User user in users)
+                {
+                    User? existUser = await userManager.FindByEmailAsync(user.Email!);
+
+                    if (existUser == null)
                     {
-                        UserName = userName,
-                        Email = adminUserEmail,
-                        DisplayName = displayName,
-                        FirstName = firstName,
-                        LastName = lastName,
-                        Bio = bio,
-                        EmailConfirmed = true,
-                        CreatedBy = SuperAdmin,
-                        ModifiedBy = SuperAdmin,
-                        CreatedDate = DateTime.UtcNow,
-                        ModifiedDate = DateTime.UtcNow
+                        string defaultPassword = "ApiUserTenant0@0410";
+                        var newClaims = new List<Claim>()
+                    {
+                        new(type:nameof(Policy), value:Policy.All),
+                        new(type:nameof(Policy), value:Policy.Create),
+                        new(type:nameof(Policy), value:Policy.Read),
+                        new(type:nameof(Policy), value:Policy.Update),
+                        new(type:nameof(Policy), value:Policy.Delete),
                     };
 
-                    var newClaims = new List<Claim>()
-                    {
-                        new(type:"Policy", value:Policy.All),
-                        new(type:"Policy", value:Policy.Create),
-                        new(type:"Policy", value:Policy.Read),
-                        new(type:"Policy", value:Policy.Update),
-                        new(type:"Policy", value:Policy.Delete),
-                    };
+                        if (user.IsAdmin)
+                        {
+                            defaultPassword = "imperialtuhoAdmin@0410";
+                        }
 
-                    await userManager.CreateAsync(newSuperAdmin, password);
-                    await userManager.AddToRoleAsync(newSuperAdmin, SuperAdmin);
-                    await userManager.AddClaimsAsync(newSuperAdmin, newClaims);
+                        await userManager.CreateAsync(user, defaultPassword);
+                        await userManager.AddToRoleAsync(user, user.IsAdmin ? SuperAdmin : ApiUser);
+                        await userManager.AddClaimsAsync(user, newClaims);
+                    }
                 }
             }
         }

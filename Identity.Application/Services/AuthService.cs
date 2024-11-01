@@ -8,6 +8,7 @@ using Identity.Domain.Constants;
 using Identity.Domain.Entities;
 using Identity.Domain.Exceptions;
 using Identity.Domain.Helpers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
@@ -23,7 +24,8 @@ namespace Identity.Application.Services
             ITokenRepository tokenRepository,
             IRefreshTokenRepository refreshTokenRepository,
             IOptions<ApplicationSettings> applicationSettings,
-            IMapper mapper) : base(userManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper)
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor) : base(userManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper, httpContextAccessor)
         {
         }
 
@@ -55,7 +57,7 @@ namespace Identity.Application.Services
 
             IList<Claim>? addedClaims = await _userManager.GetClaimsAsync(appUser);
 
-            return await _tokenRepository.CreateTokenAsync(appUser, addingRoles, addedClaims);
+            return await _tokenRepository.CreateTokenAsync(appUser, addingRoles, addedClaims, appUser.TenantId);
         }
 
         public async Task<bool> RegisterWithEmailConfirmAsync(RegisterDto registerModel)
@@ -118,7 +120,7 @@ namespace Identity.Application.Services
             IList<string> roles = await _userManager.GetRolesAsync(loginUser);
             IList<Claim> claims = await _userManager.GetClaimsAsync(loginUser);
 
-            return await _tokenRepository.CreateTokenAsync(loginUser, roles, claims);
+            return await _tokenRepository.CreateTokenAsync(loginUser, roles, claims, loginUser.TenantId);
         }
 
         public async Task<TokenDto> LoginRequireEmailConfirmAsync(string email, string password)
@@ -149,7 +151,7 @@ namespace Identity.Application.Services
             IList<string> roles = await _userManager.GetRolesAsync(loginUser);
             IList<Claim> claims = await _userManager.GetClaimsAsync(loginUser);
 
-            return await _tokenRepository.CreateTokenAsync(loginUser, roles, claims);
+            return await _tokenRepository.CreateTokenAsync(loginUser, roles, claims, loginUser.TenantId);
         }
 
         public async Task<bool> LoginWith2FaAsync(string email, string password)
@@ -269,7 +271,7 @@ namespace Identity.Application.Services
             IList<string> roles = await _userManager.GetRolesAsync(user);
             IList<Claim> claims = await _userManager.GetClaimsAsync(user);
 
-            return await _tokenRepository.CreateTokenAsync(user, roles, claims);
+            return await _tokenRepository.CreateTokenAsync(user, roles, claims, user.TenantId);
         }
 
         public async Task<TokenDto> VerifyEmailTokenAsync(string email, string token)
@@ -286,7 +288,7 @@ namespace Identity.Application.Services
             IList<string> roles = await _userManager.GetRolesAsync(user);
             IList<Claim> claims = await _userManager.GetClaimsAsync(user);
 
-            return await _tokenRepository.CreateTokenAsync(user, roles, claims);
+            return await _tokenRepository.CreateTokenAsync(user, roles, claims, user.TenantId);
         }
 
         #endregion Token
@@ -366,6 +368,7 @@ namespace Identity.Application.Services
             User result = _mapper.Map<User>(user);
             result.CreatedDate = DateTime.UtcNow;
             result.CreatedBy = defaultCreatedBy;
+            result.TenantId = LoginSession?.TenantId;
 
             return result;
         }

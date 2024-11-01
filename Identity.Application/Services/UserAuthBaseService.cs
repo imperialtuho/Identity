@@ -3,6 +3,9 @@ using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Domain.Entities;
+using Identity.Domain.Extensions;
+using Identity.Domain.SharedKernel;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using System.Text.RegularExpressions;
@@ -17,6 +20,21 @@ namespace Identity.Application.Services
         protected readonly IRefreshTokenRepository _refreshTokenRepository;
         protected readonly ITokenRepository _tokenRepository;
         protected readonly UserManager<User> _userManager;
+        protected readonly IHttpContextAccessor _httpContextAccessor;
+
+        private UserSession? _userSession;
+        protected int? TenantIdentify => _httpContextAccessor.GetTenantIdentify();
+        public int? TenantId => LoginSession?.TenantId ?? TenantIdentify;
+
+        public UserSession? LoginSession
+        {
+            get => _userSession ?? _httpContextAccessor?.GetUserSession();
+            set
+            {
+                _userSession = value;
+            }
+        }
+
         protected readonly string EmailPattern = @"^([\w\.\-]+)@([\w\-]+)((\.(\w){2,3})+)$";
         protected readonly string PasswordPattern = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$";
         private const int NameLength = 1;
@@ -26,7 +44,8 @@ namespace Identity.Application.Services
             IRefreshTokenRepository refreshTokenRepository,
             ITokenRepository tokenRepository,
             IOptions<ApplicationSettings> applicationSettings,
-            IMapper mapper)
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
             _passwordHasher = passwordHasher;
@@ -34,6 +53,7 @@ namespace Identity.Application.Services
             _tokenRepository = tokenRepository;
             _applicationSettings = applicationSettings.Value;
             _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         protected void ValidateClaims(IList<ClaimDto>? claims)
@@ -70,9 +90,7 @@ namespace Identity.Application.Services
 
             if (!Regex.IsMatch(password, passwordPattern))
             {
-                throw new ArgumentException(@"Password must have at least 8 characters,
-                                              at least 1 uppercase letter, at least 1 lowercase letter,
-                                              at least 1 digit and at least 1 special character.");
+                throw new ArgumentException(@"Password must have at least 8 characters, at least 1 uppercase letter, at least 1 lowercase letter, at least 1 digit and at least 1 special character.");
             }
         }
 
@@ -108,13 +126,17 @@ namespace Identity.Application.Services
             }
         }
 
-        protected async Task ValidateModelAsync(User requestModel, string password)
+        protected async Task ValidateModelAsync(User requestModel, string password, bool isUpdate = false)
         {
             ArgumentNullException.ThrowIfNull(requestModel);
 
             ValidateEmail(requestModel.Email);
             ValidateUserName(requestModel.UserName);
-            ValidatePassword(password);
+
+            if (!isUpdate)
+            {
+                ValidatePassword(password);
+            }
 
             User? foundUserByEmail = await _userManager.FindByEmailAsync(requestModel.Email);
             User? foundUserByUserName = await _userManager.FindByNameAsync(requestModel.UserName);

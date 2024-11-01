@@ -18,9 +18,11 @@ namespace Identity.Infrastructure.Repositories.Providers
     {
         protected C _dbContext;
         protected ISqlConnectionFactory _sqlConnectionFactory;
+        protected const int DefaultTenantId = 0;
+
         private readonly IHttpContextAccessor _httpContextAccessor;
         private UserSession? _UserSession;
-        private int? TenantIdentify => _httpContextAccessor.GetTenantIdentify();
+        private int? TenantIdentify => _httpContextAccessor.GetTenantIdentify() ?? DefaultTenantId;
         public int? TenantId => LoginSession?.TenantId ?? TenantIdentify;
 
         public UserSession? LoginSession

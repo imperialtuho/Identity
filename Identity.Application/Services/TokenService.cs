@@ -18,7 +18,7 @@ namespace Identity.Application.Services
 
         public async Task<TokenDto> CreateAsync(UserDto user, IList<string> roles, IList<Claim>? additionalClaims = null)
         {
-            return await _tokenRepository.CreateTokenAsync(user.Adapt<User>(), roles, additionalClaims);
+            return await _tokenRepository.CreateTokenAsync(user.Adapt<User>(), roles, additionalClaims, user.TenantId);
         }
 
         public ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token)

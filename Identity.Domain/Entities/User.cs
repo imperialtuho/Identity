@@ -27,6 +27,10 @@ namespace Identity.Domain.Entities
 
         public bool IsDeleted { get; set; }
 
+        public int? TenantId { get; set; }
+
+        public bool IsAdmin { get; set; }
+
         public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
         public virtual ICollection<UserMenu> UserMenus { get; set; }

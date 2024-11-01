@@ -7,7 +7,7 @@ namespace Identity.Domain.Extensions
     {
         public static UserSession GetUserSession(this ClaimsPrincipal claimsPrincipal)
         {
-            string? userEmail = claimsPrincipal?.FindFirst(ClaimTypes.Name)?.Value;
+            string? userEmail = claimsPrincipal?.FindFirst(ClaimTypes.Email)?.Value;
             string? userStringId = claimsPrincipal?.FindFirst(ClaimTypes.Sid)?.Value;
             string? tenantId = claimsPrincipal?.FindFirst("tenantId")?.Value ?? "0";
             var userSession = new UserSession();

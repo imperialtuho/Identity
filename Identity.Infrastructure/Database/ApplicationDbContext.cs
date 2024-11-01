@@ -21,6 +21,8 @@ namespace Identity.Infrastructure.Database
             builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
             base.OnModelCreating(builder);
+
+            builder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
         }
     }
 }
