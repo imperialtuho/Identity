@@ -1,4 +1,5 @@
 ﻿using Identity.Application.Configurations.Database;
+using Identity.Application.Configurations.Settings;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Domain.Common;
 using Identity.Domain.Entities;
@@ -31,6 +32,8 @@ namespace Identity.Infrastructure
             {
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("Identity.Api"));
             });
+
+            var jwtSettings = configuration.GetSection(nameof(JwtSettings)).Get<JwtSettings>() ?? throw new InvalidDataException($"{nameof(JwtSettings)} are not setup!");
 
             services.AddIdentityCore<User>(options =>
             {
@@ -68,10 +71,10 @@ namespace Identity.Infrastructure
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateIssuerSigningKey = true,
-                    ValidAudience = configuration["JWT:Audience"],
-                    ValidIssuer = configuration["JWT:Issuer"],
+                    ValidAudience = jwtSettings.Audience,
+                    ValidIssuer = jwtSettings.Issuer,
                     ClockSkew = TimeSpan.Zero,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Key"] ?? throw new InvalidOperationException("JWT:Key in appsettings is missing!")))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key))
                 };
                 options.Events = new JwtBearerEvents
                 {
@@ -88,34 +91,35 @@ namespace Identity.Infrastructure
 
             // Adds system policies.
             var allowRoles = configuration.GetSection("ApplicationSettings:AllowedRoles").Get<IList<string>>()
-            ?? new List<string>() { DefaultRoleValue.SuperAdmin, DefaultRoleValue.Admin, DefaultRoleValue.User, DefaultRoleValue.ApiUser };
+            ?? [DefaultRoleValue.SuperAdmin, DefaultRoleValue.Admin, DefaultRoleValue.AppUser, DefaultRoleValue.ApiUser];
 
             string roles = string.Join(",", allowRoles);
+            string claimType = "Policy";
 
             services.AddAuthorizationBuilder()
-                .AddPolicy("CreatePolicy", policy =>
+                .AddPolicy(nameof(Policies.Create), policy =>
                 {
-                    policy.RequireClaim("Policy", Policy.Create);
+                    policy.RequireClaim(claimType, Policies.Create);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy("ReadPolicy", policy =>
+                .AddPolicy(nameof(Policies.Read), policy =>
                 {
-                    policy.RequireClaim("Policy", Policy.Read);
+                    policy.RequireClaim(claimType, Policies.Read);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy("UpdatePolicy", policy =>
+                .AddPolicy(nameof(Policies.Update), policy =>
                 {
-                    policy.RequireClaim("Policy", Policy.Update);
+                    policy.RequireClaim(claimType, Policies.Update);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy("DeletePolicy", policy =>
+                .AddPolicy(nameof(Policies.Delete), policy =>
                 {
-                    policy.RequireClaim("Policy", Policy.Delete);
+                    policy.RequireClaim(claimType, Policies.Delete);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy("All", policy =>
+                .AddPolicy(nameof(Policies.Super), policy =>
                 {
-                    policy.RequireClaim("Policy", Policy.All);
+                    policy.RequireClaim(claimType, Policies.Super);
                     policy.RequireRole(DefaultRoleValue.SuperAdmin);
                 });
 

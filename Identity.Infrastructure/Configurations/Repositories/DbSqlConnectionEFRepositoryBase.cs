@@ -5,7 +5,7 @@ using Identity.Infrastructure.Repositories.Providers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
-namespace Identity.Infrastructure.Configurations
+namespace Identity.Infrastructure.Configurations.Repositories
 {
     public abstract class DbSqlConnectionEFRepositoryBase<C, T> : EntityFrameworkGenericRepository<C, T>
         where T : BaseEntity<Guid>

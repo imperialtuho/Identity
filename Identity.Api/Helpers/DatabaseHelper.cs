@@ -9,43 +9,64 @@ namespace Identity.Api.Helpers
     {
         public static async Task SeedAsync(IApplicationBuilder applicationBuilder)
         {
-            using (IServiceScope serviceScope = applicationBuilder.ApplicationServices.CreateScope())
-            {
-                var context = serviceScope.ServiceProvider.GetService<ApplicationDbContext>();
+            using IServiceScope serviceScope = applicationBuilder.ApplicationServices.CreateScope();
 
-                await context!.Database.EnsureCreatedAsync();
+            // DbContext
+            var dbContext = serviceScope.ServiceProvider.GetService<ApplicationDbContext>();
+            // Roles
+            var roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+            // Users
+            var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+            await dbContext!.Database.EnsureCreatedAsync();
+
+            // Step 1: Seed Permissions
+            var permissions = new List<Permission>
+            {
+                new () { Id = Guid.NewGuid(), Name = Policies.Super, Description = "All permission" },
+                new () { Id = Guid.NewGuid(), Name = Policies.Create, Description = "Create permission" },
+                new () { Id = Guid.NewGuid(), Name = Policies.Read, Description = "Read permission" },
+                new () { Id = Guid.NewGuid(), Name = Policies.Update, Description = "Update permission" },
+                new () { Id = Guid.NewGuid(), Name = Policies.Delete, Description = "Delete permission" }
+            };
+
+            foreach (Permission permission in permissions)
+            {
+                if (!dbContext.Permissions.Any(p => p.Name == permission.Name))
+                {
+                    dbContext.Permissions.Add(permission);
+                }
             }
 
-            using (IServiceScope serviceScope = applicationBuilder.ApplicationServices.CreateScope())
+            await dbContext.SaveChangesAsync();
+
+            // Step 2: Seed Roles and Assign Permissions
+            async Task CreateRoleWithPermissionsAsync(string roleName, IEnumerable<string> permissionNames)
             {
-                // Roles
-                var roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
-
-                if (!await roleManager.RoleExistsAsync(SuperAdmin))
+                if (!await roleManager.RoleExistsAsync(roleName))
                 {
-                    await roleManager.CreateAsync(new Role(Guid.NewGuid(), SuperAdmin));
+                    var role = new Role { Id = Guid.NewGuid(), Name = roleName };
+                    await roleManager.CreateAsync(role);
+
+                    var rolePermissions = permissionNames.Select(permissionName => new RolePermission
+                    {
+                        RoleId = role.Id,
+                        PermissionId = dbContext.Permissions.Single(p => p.Name == permissionName).Id
+                    });
+
+                    dbContext.RolePermissions.AddRange(rolePermissions);
+                    await dbContext.SaveChangesAsync();
                 }
+            }
 
-                if (!await roleManager.RoleExistsAsync(Admin))
-                {
-                    await roleManager.CreateAsync(new Role(Guid.NewGuid(), Admin));
-                }
+            // Define roles with associated permissions
+            await CreateRoleWithPermissionsAsync(SuperAdmin, permissions.Select(p => p.Name));
+            await CreateRoleWithPermissionsAsync(Admin, [Policies.Read, Policies.Create, Policies.Update, Policies.Delete]);
+            await CreateRoleWithPermissionsAsync(ApiUser, [Policies.Read, Policies.Create, Policies.Update]);
+            await CreateRoleWithPermissionsAsync(AppUser, [Policies.Read, Policies.Create, Policies.Update]);
 
-                if (!await roleManager.RoleExistsAsync(ApiUser))
-                {
-                    await roleManager.CreateAsync(new Role(Guid.NewGuid(), ApiUser));
-                }
-
-                if (!await roleManager.RoleExistsAsync(DefaultRoleValue.User))
-                {
-                    await roleManager.CreateAsync(new Role(Guid.NewGuid(), DefaultRoleValue.User));
-                }
-
-                // Users
-                var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<User>>();
-
-                IList<User> users = [
-                new()
+            IList<User> users = [
+            new()
                 {
                     UserName = "admin-tuho",
                     Email = "imperialtuho0410@gmail.com",
@@ -78,30 +99,28 @@ namespace Identity.Api.Helpers
                     IsAdmin = false,
                 }];
 
-                foreach (User user in users)
+            foreach (User user in users)
+            {
+                User? existingUser = await userManager.FindByEmailAsync(user.Email!);
+
+                if (existingUser == null)
                 {
-                    User? existUser = await userManager.FindByEmailAsync(user.Email!);
+                    string? defaultPassword = user.IsAdmin ? "imperialtuhoAdmin@0410" : "ApiUserTenant0@0410";
 
-                    if (existUser == null)
+                    await userManager.CreateAsync(user, defaultPassword);
+
+                    string? roleName = user.IsAdmin ? SuperAdmin : ApiUser;
+
+                    await userManager.AddToRoleAsync(user, roleName);
+
+                    // Add claims based on permissions of assigned role
+                    Role? role = await roleManager.FindByNameAsync(roleName) ?? new();
+
+                    IQueryable<string> rolePermissions = dbContext.RolePermissions.Where(rp => rp.RoleId == role.Id).Select(rp => rp.Permission.Name);
+
+                    foreach (string permission in rolePermissions)
                     {
-                        string defaultPassword = "ApiUserTenant0@0410";
-                        var newClaims = new List<Claim>()
-                    {
-                        new(type:nameof(Policy), value:Policy.All),
-                        new(type:nameof(Policy), value:Policy.Create),
-                        new(type:nameof(Policy), value:Policy.Read),
-                        new(type:nameof(Policy), value:Policy.Update),
-                        new(type:nameof(Policy), value:Policy.Delete),
-                    };
-
-                        if (user.IsAdmin)
-                        {
-                            defaultPassword = "imperialtuhoAdmin@0410";
-                        }
-
-                        await userManager.CreateAsync(user, defaultPassword);
-                        await userManager.AddToRoleAsync(user, user.IsAdmin ? SuperAdmin : ApiUser);
-                        await userManager.AddClaimsAsync(user, newClaims);
+                        await userManager.AddClaimAsync(user, new Claim("Permission", permission));
                     }
                 }
             }

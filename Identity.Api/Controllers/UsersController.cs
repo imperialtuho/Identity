@@ -37,7 +37,7 @@ namespace Identity.Api.Controllers
         /// <param name="userId">The userId.</param>
         /// <returns>GetUserRolesByIdDto.</returns>
         [HttpGet("{userId}/roles")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = "All")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = Policies.Super)]
         public async Task<IActionResult> GetUserRolesByUserIdAsync(string userId)
         {
             if (string.IsNullOrEmpty(userId))
@@ -115,7 +115,7 @@ namespace Identity.Api.Controllers
         }
 
         [HttpDelete("{userId}")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = Policies.Delete)]
         public async Task<IActionResult> DeleteAsync([FromRoute] string userId, bool isSoftDelete = true)
         {
             if (string.IsNullOrEmpty(userId))
@@ -129,7 +129,7 @@ namespace Identity.Api.Controllers
         }
 
         [HttpPost("search")]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> SearchAsync([FromBody] SearchRequest? request, bool isIncludeDeletedUser = false)
         {
             if (request == null)

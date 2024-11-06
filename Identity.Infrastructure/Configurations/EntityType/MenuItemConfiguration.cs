@@ -2,13 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Identity.Infrastructure.Configurations
+namespace Identity.Infrastructure.Configurations.EntityType
 {
     public class MenuItemConfiguration : IEntityTypeConfiguration<Menu>
     {
         public void Configure(EntityTypeBuilder<Menu> builder)
         {
-            builder.ToTable("MenuItems");
+            builder.ToTable(Menu.TableName);
             builder.HasMany(menuItem => menuItem.Children)
                    .WithOne(menuItem => menuItem.ParentItem)
                    .HasForeignKey(menuItem => menuItem.ParentId);

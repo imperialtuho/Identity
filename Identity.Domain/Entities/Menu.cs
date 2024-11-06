@@ -4,6 +4,8 @@ namespace Identity.Domain.Entities
 {
     public class Menu : BaseEntity<Guid>
     {
+        public const string TableName = "MenuItems";
+
         public Menu()
         {
             Children = new HashSet<Menu>();

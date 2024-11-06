@@ -10,6 +10,7 @@ using Identity.Domain.Exceptions;
 using Identity.Domain.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
@@ -19,14 +20,19 @@ namespace Identity.Application.Services
 {
     public class AuthService : UserAuthBaseService, IAuthService
     {
+        private readonly ILogger<AuthService> _logger;
+
         public AuthService(UserManager<User> userManager,
+            RoleManager<Role> roleManager,
+            ILogger<AuthService> logger,
             IPasswordHasher<User> passwordHasher,
             ITokenRepository tokenRepository,
             IRefreshTokenRepository refreshTokenRepository,
             IOptions<ApplicationSettings> applicationSettings,
             IMapper mapper,
-            IHttpContextAccessor httpContextAccessor) : base(userManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper, httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor) : base(userManager, roleManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper, httpContextAccessor)
         {
+            _logger = logger;
         }
 
         #region Register
@@ -39,7 +45,7 @@ namespace Identity.Application.Services
 
             User newUser = InitializeUser(userDto, registerModel.Roles);
             await ValidateModelAsync(newUser, registerModel.Password);
-            ValidateRoles(roles);
+            await ValidateRolesAsync(roles);
             ValidateClaims(claims);
 
             IdentityResult identityResult = await _userManager.CreateAsync(newUser, registerModel.Password);
@@ -50,7 +56,7 @@ namespace Identity.Application.Services
             }
 
             User? appUser = await _userManager.FindByEmailAsync(newUser.Email!) ?? throw new NotFoundException($"User with {newUser.Email} not found!");
-            var addingRoles = roles != null && roles.Any() ? roles : [Roles.User];
+            IList<string> addingRoles = [DefaultRoleValue.AppUser];
 
             await AddRolesAsync(appUser, addingRoles);
             await AddClaimsAsync(appUser, claims);
@@ -69,7 +75,7 @@ namespace Identity.Application.Services
 
             User newUser = InitializeUser(userDto, registerModel.Roles);
             await ValidateModelAsync(newUser, registerModel.Password);
-            ValidateRoles(roles);
+            await ValidateRolesAsync(roles);
             ValidateClaims(claims);
 
             IdentityResult? identityResult = await _userManager.CreateAsync(newUser, registerModel.Password);
@@ -80,7 +86,7 @@ namespace Identity.Application.Services
             }
 
             User? appUser = await _userManager.FindByEmailAsync(newUser.Email!) ?? throw new NotFoundException($"User with {newUser.Email} not found!");
-            var addingRoles = roles != null && roles.Any() ? roles : [Roles.User];
+            IList<string> addingRoles = [DefaultRoleValue.AppUser];
 
             await AddRolesAsync(appUser, addingRoles);
             await AddClaimsAsync(appUser, claims);
@@ -299,9 +305,9 @@ namespace Identity.Application.Services
         {
             User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException("User doesn't exists.");
 
-            IList<string>? allowedClaims = _applicationSettings.AvailableClaimPolicies;
+            IList<Claim>? validClaims = await _userManager.GetClaimsAsync(user);
 
-            if (!allowedClaims!.Contains(claimValue))
+            if (!validClaims.Select(x => x.Value)!.Contains(claimValue))
             {
                 throw new InvalidOperationException($"Invalid Claims or Policy value try again!");
             }
@@ -319,7 +325,7 @@ namespace Identity.Application.Services
                        ?? await _userManager.FindByIdAsync(userId))
                        ?? throw new ArgumentException($"User with {email} doesn't exists.");
 
-            ValidateRoles(roles);
+            await ValidateRolesAsync(roles);
 
             IdentityResult identityResult = await _userManager.AddToRolesAsync(user, roles);
 
@@ -336,13 +342,14 @@ namespace Identity.Application.Services
 
             if (!addRolesResult.Succeeded)
             {
+                _logger.LogError("Failed to add roles {Roles} to user {UserId}. Errors: {Errors}", roles, user.Id, string.Join(", ", addRolesResult.Errors.Select(e => e.Description)));
                 throw new InvalidDataException("Add roles failed.");
             }
         }
 
         private async Task AddClaimsAsync(User user, IList<ClaimDto>? claimsInput)
         {
-            var claims = claimsInput?.Select(c => new Claim(c.Type, c.Value));
+            IEnumerable<Claim>? claims = claimsInput?.Select(c => new Claim(c.Type, c.Value));
             var addClaimsResult = new IdentityResult();
 
             if (claims != null && claims.Any())
@@ -358,7 +365,7 @@ namespace Identity.Application.Services
 
         private User InitializeUser(UserDto user, IList<string>? roles)
         {
-            string defaultCreatedBy = DefaultRoleValue.User;
+            string defaultCreatedBy = DefaultRoleValue.AppUser;
 
             if (roles?.FirstOrDefault(role => role.Equals(DefaultRoleValue.Admin)) != null)
             {

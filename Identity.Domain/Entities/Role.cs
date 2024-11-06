@@ -14,5 +14,8 @@ namespace Identity.Domain.Entities
         }
 
         public virtual ICollection<RoleMenu> RoleMenus { get; set; }
+        public string Description { get; set; }
+        public ICollection<RolePermission> RolePermissions { get; set; }
+        public ICollection<UserRole> UserRoles { get; set; }
     }
 }

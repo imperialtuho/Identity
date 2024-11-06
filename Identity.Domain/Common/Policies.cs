@@ -1,8 +1,8 @@
 ﻿namespace Identity.Domain.Common
 {
-    public static class Policy
+    public static class Policies
     {
-        public const string All = "All";
+        public const string Super = "Super";
         public const string Create = "Create";
         public const string Read = "Read";
         public const string Update = "Update";

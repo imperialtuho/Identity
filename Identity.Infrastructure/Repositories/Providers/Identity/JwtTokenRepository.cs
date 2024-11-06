@@ -3,7 +3,7 @@ using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Domain.Entities;
-using Identity.Infrastructure.Configurations;
+using Identity.Infrastructure.Configurations.Repositories;
 using Identity.Infrastructure.Database;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;

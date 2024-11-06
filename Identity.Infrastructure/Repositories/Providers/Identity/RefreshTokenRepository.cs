@@ -1,7 +1,7 @@
 ﻿using Identity.Application.Configurations.Database;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Domain.Entities;
-using Identity.Infrastructure.Configurations;
+using Identity.Infrastructure.Configurations.Repositories;
 using Identity.Infrastructure.Database;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Identity.Domain.Common;
+using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 
 namespace Identity.Domain.Entities
@@ -17,6 +18,12 @@ namespace Identity.Domain.Entities
         [Url]
         public string? ProfilePictureUrl { get; set; }
 
+        public string Title { get; set; } = AccountTitle.NewBie;
+
+        public string? CellPhone { get; set; }
+
+        public string? SecondaryCellPhone { get; set; }
+
         public DateTime? CreatedDate { get; set; }
 
         public string? CreatedBy { get; set; }
@@ -34,5 +41,7 @@ namespace Identity.Domain.Entities
         public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
         public virtual ICollection<UserMenu> UserMenus { get; set; }
+
+        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     }
 }

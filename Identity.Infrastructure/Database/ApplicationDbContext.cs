@@ -8,6 +8,9 @@ namespace Identity.Infrastructure.Database
     public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
     {
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<UserRole> UserRoles { get; set; }
 
         public ApplicationDbContext()
         { }

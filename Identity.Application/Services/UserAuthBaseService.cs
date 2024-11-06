@@ -7,6 +7,7 @@ using Identity.Domain.Extensions;
 using Identity.Domain.SharedKernel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Text.RegularExpressions;
 
@@ -20,6 +21,7 @@ namespace Identity.Application.Services
         protected readonly IRefreshTokenRepository _refreshTokenRepository;
         protected readonly ITokenRepository _tokenRepository;
         protected readonly UserManager<User> _userManager;
+        protected readonly RoleManager<Role> _roleManager;
         protected readonly IHttpContextAccessor _httpContextAccessor;
 
         private UserSession? _userSession;
@@ -40,6 +42,7 @@ namespace Identity.Application.Services
         private const int NameLength = 1;
 
         public UserAuthBaseService(UserManager<User> userManager,
+            RoleManager<Role> roleManager,
             IPasswordHasher<User> passwordHasher,
             IRefreshTokenRepository refreshTokenRepository,
             ITokenRepository tokenRepository,
@@ -48,6 +51,7 @@ namespace Identity.Application.Services
             IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _passwordHasher = passwordHasher;
             _refreshTokenRepository = refreshTokenRepository;
             _tokenRepository = tokenRepository;
@@ -94,13 +98,19 @@ namespace Identity.Application.Services
             }
         }
 
-        protected void ValidateRoles(IList<string>? roles)
+        protected async Task ValidateRolesAsync(IList<string>? roles)
         {
-            IList<string>? allowedRoles = _applicationSettings.AllowedRoles ?? throw new InvalidOperationException($"{nameof(allowedRoles)} setting is null!");
+            if (roles == null || !roles.Any()) return;  // No roles to validate, so exit early
 
-            if (roles != null && roles.Any(registerRole => !allowedRoles.Contains(registerRole)))
+            // Fetch valid roles from the system
+            List<string?>? validRoles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
+
+            // Check for any roles that are not valid system roles
+            bool invalidRoles = roles.Except(validRoles).Any();
+
+            if (invalidRoles)
             {
-                throw new ArgumentException($"Roles must belong to this list: {string.Join(", ", allowedRoles)}.");
+                throw new ArgumentException($"The following roles are invalid: {string.Join(", ", invalidRoles)}. Only existing roles can be assigned.");
             }
         }
 
