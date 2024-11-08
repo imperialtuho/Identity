@@ -60,7 +60,7 @@ namespace Identity.Application.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        protected void ValidateClaims(IList<ClaimDto>? claims)
+        protected static void ValidateClaims(IList<ClaimDto>? claims)
         {
             if (claims != null && claims.Any(c => string.IsNullOrEmpty(c.Type) || string.IsNullOrEmpty(c.Value)))
             {
@@ -123,7 +123,7 @@ namespace Identity.Application.Services
             ValidatePassword(password);
         }
 
-        protected void ValidateUserName(string? name)
+        protected static void ValidateUserName(string? name)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -148,10 +148,10 @@ namespace Identity.Application.Services
                 ValidatePassword(password);
             }
 
-            User? foundUserByEmail = await _userManager.FindByEmailAsync(requestModel.Email);
-            User? foundUserByUserName = await _userManager.FindByNameAsync(requestModel.UserName);
+            User? foundUserByEmail = await _userManager.FindByEmailAsync(requestModel.Email!);
+            User? foundUserByUserName = await _userManager.FindByNameAsync(requestModel.UserName!);
 
-            bool isDisplayNameTaken = _userManager.Users.Any(u => u.DisplayName.Equals(requestModel.DisplayName));
+            bool isDisplayNameTaken = await _userManager.Users.AnyAsync(u => u.DisplayName.Equals(requestModel.DisplayName));
 
             if (foundUserByEmail != null && !requestModel.Id.Equals(foundUserByEmail.Id))
             {

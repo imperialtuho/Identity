@@ -12,46 +12,30 @@ namespace Identity.Api.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class UsersController(IAuthService authService, IUserService userService) : ControllerBase
+    public class UsersController(IUserService userService) : ControllerBase
     {
         /// <summary>
-        /// Adds roles.
-        /// </summary>
-        /// <param name="request">The request.</param>
-        /// <returns>System.Task{IActionResult}.</returns>
-        [HttpPost("{userId}/roles")]
-        [Authorize($"{SuperAdmin}")]
-        public async Task<IActionResult> AddRoleToUserAsync([FromRoute] string userId, [FromBody] RoleDto request)
-        {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest($"{nameof(userId)} is required");
-            }
-
-            return Ok(await authService.AddUserToRolesAsync(userId, request.Email, request.Roles));
-        }
-
-        /// <summary>
-        /// Gets user roles by user id.
+        /// Deletes user by id.
         /// </summary>
         /// <param name="userId">The userId.</param>
-        /// <returns>GetUserRolesByIdDto.</returns>
-        [HttpGet("{userId}/roles")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = Policies.Super)]
-        public async Task<IActionResult> GetUserRolesByUserIdAsync(string userId)
+        /// <param name="isSoftDelete">The param which action will be soft or hard delete</param>
+        /// <returns>True/False on based on result of the delete action.</returns>
+        [HttpDelete("{userId}")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = Policies.Delete)]
+        public async Task<IActionResult> DeleteAsync([FromRoute] string userId, bool isSoftDelete = true)
         {
             if (string.IsNullOrEmpty(userId))
             {
                 return BadRequest($"{nameof(userId)} is required");
             }
 
-            GetUserRolesByIdDto result = await userService.GetUserRolesByIdAsync(userId);
+            bool result = await userService.DeleteByIdAsync(userId, isSoftDelete);
 
             return Ok(result);
         }
 
         /// <summary>
-        /// Get user by id.
+        /// Gets user by id.
         /// </summary>
         /// <param name="id">The id.</param>
         /// <returns>UserDto.</returns>
@@ -65,6 +49,26 @@ namespace Identity.Api.Controllers
             }
 
             UserDto result = await userService.GetByIdAsync(id);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Searches user by keyword request.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <param name="isIncludingDeletedUser">Is including deleted user or not.</param>
+        /// <returns>Result of searching user by keyword action.</returns>
+        [HttpPost("search")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SearchAsync([FromBody] SearchRequest? request, bool isIncludingDeletedUser = false)
+        {
+            if (request == null)
+            {
+                return BadRequest("search payload is required");
+            }
+
+            PaginatedResponse<UserDto> result = await userService.SearchAsync(request, isIncludingDeletedUser);
 
             return Ok(result);
         }
@@ -99,7 +103,7 @@ namespace Identity.Api.Controllers
         /// </summary>
         /// <param name="userId">The userId.</param>
         /// <param name="password">The password.</param>
-        /// <returns></returns>
+        /// <returns>True/False based on updating user's password action.</returns>
         [HttpPut("{userId}/password")]
         [Authorize]
         public async Task<IActionResult> UpdatePasswordAsync([FromRoute] string userId, [FromBody] string password)
@@ -110,34 +114,6 @@ namespace Identity.Api.Controllers
             }
 
             bool result = await userService.UpdatePasswordAsync(userId, password);
-
-            return Ok(result);
-        }
-
-        [HttpDelete("{userId}")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = Policies.Delete)]
-        public async Task<IActionResult> DeleteAsync([FromRoute] string userId, bool isSoftDelete = true)
-        {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest($"{nameof(userId)} is required");
-            }
-
-            bool result = await userService.DeleteByIdAsync(userId, isSoftDelete);
-
-            return Ok(result);
-        }
-
-        [HttpPost("search")]
-        [AllowAnonymous]
-        public async Task<IActionResult> SearchAsync([FromBody] SearchRequest? request, bool isIncludeDeletedUser = false)
-        {
-            if (request == null)
-            {
-                return BadRequest("search payload is required");
-            }
-
-            PaginatedResponse<UserDto> result = await userService.SearchAsync(request, isIncludeDeletedUser);
 
             return Ok(result);
         }

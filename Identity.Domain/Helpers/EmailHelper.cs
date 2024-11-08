@@ -12,10 +12,12 @@ namespace Identity.Domain.Helpers
                 throw new InvalidOperationException($"{nameof(userEmail)} is null or empty.");
             }
 
-            var mailMessage = new MailMessage();
-            mailMessage.From = new MailAddress("imperialtuho-admin@yopmail.com");
-            mailMessage.To.Add(new MailAddress(userEmail));
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress("imperialtuho-admin@yopmail.com")
+            };
 
+            mailMessage.To.Add(new MailAddress(userEmail));
             mailMessage.Subject = "Two Factor Code";
             mailMessage.IsBodyHtml = true;
             mailMessage.Body = code;

@@ -8,6 +8,8 @@ namespace Identity.Application.Interfaces.Services
 
         Task<bool> AddUserToRolesAsync(string userId, string email, IList<string> roles);
 
+        Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(string userId);
+
         Task<string> Get2FaTokenAsync(string email);
 
         Task<TokenDto> GoogleLogin(ExternalAuthDto externalAuth);

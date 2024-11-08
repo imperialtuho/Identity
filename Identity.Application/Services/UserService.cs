@@ -65,21 +65,6 @@ namespace Identity.Application.Services
             return user.Adapt<UserDto>();
         }
 
-        public async Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(string userId)
-        {
-            User? user = await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException($"User with id: {userId} could not be found!");
-
-            IList<string> roles = await _userManager.GetRolesAsync(user);
-
-            return new GetUserRolesByIdDto
-            {
-                Id = user.Id.ToString(),
-                Name = user.UserName!,
-                Email = user.Email!,
-                Roles = roles
-            };
-        }
-
         public async Task<bool> ResendVerificationEmail(string email)
         {
             User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException($"User with {email} doesn't exist.");
@@ -112,11 +97,12 @@ namespace Identity.Application.Services
 
         public async Task<PaginatedResponse<UserDto>> SearchAsync(SearchRequest request, bool isIncludeDeletedUser = false)
         {
-            string keyword = request.Keyword;
+            string keyword = request.Keyword ?? string.Empty;
 
             IQueryable<User> query = _userManager.Users.AsQueryable();
 
             Func<IQueryable<User>, IQueryable<User>>? predicate = null;
+
             if (!string.IsNullOrEmpty(keyword))
             {
                 predicate = (user) => user.Where(x => x.DisplayName.Contains(keyword)
@@ -174,14 +160,9 @@ namespace Identity.Application.Services
             currentUser.ModifiedBy = !string.IsNullOrEmpty(LoginSession?.Email) ? LoginSession.Email : currentUser.ModifiedBy;
             currentUser.ModifiedDate = DateTime.UtcNow;
 
-            IdentityResult? identityResult = await _userManager.UpdateAsync(currentUser);
+            IdentityResult? identityResult = await _userManager.UpdateAsync(currentUser) ?? new();
 
-            if (identityResult == null || !identityResult.Succeeded)
-            {
-                return false;
-            }
-
-            return true;
+            return identityResult.Succeeded;
         }
     }
 }

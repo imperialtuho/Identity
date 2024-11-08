@@ -35,6 +35,25 @@ namespace Identity.Application.Services
             _logger = logger;
         }
 
+        #region Role
+
+        public async Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(string userId)
+        {
+            User? user = await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException($"User with id: {userId} could not be found!");
+
+            IList<string> roles = await _userManager.GetRolesAsync(user);
+
+            return new GetUserRolesByIdDto
+            {
+                Id = user.Id.ToString(),
+                Name = user.UserName,
+                Email = user.Email,
+                Roles = roles
+            };
+        }
+
+        #endregion Role
+
         #region Register
 
         public async Task<TokenDto> RegisterAsync(RegisterDto registerModel)
