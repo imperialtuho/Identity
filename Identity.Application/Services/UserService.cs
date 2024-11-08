@@ -19,12 +19,13 @@ namespace Identity.Application.Services
     public class UserService : UserAuthBaseService, IUserService
     {
         public UserService(UserManager<User> userManager,
+            RoleManager<Role> roleManager,
             IPasswordHasher<User> passwordHasher,
             ITokenRepository tokenRepository,
             IRefreshTokenRepository refreshTokenRepository,
             IOptions<ApplicationSettings> applicationSettings,
             IMapper mapper,
-            IHttpContextAccessor httpContextAccessor) : base(userManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper, httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor) : base(userManager, roleManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper, httpContextAccessor)
         {
         }
 
