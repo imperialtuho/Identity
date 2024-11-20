@@ -38,10 +38,10 @@ namespace Identity.Domain.Entities
 
         public bool IsAdmin { get; set; }
 
-        public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+        public virtual ICollection<RefreshToken> RefreshTokens { get; set; }
 
         public virtual ICollection<UserMenu> UserMenus { get; set; }
 
-        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public ICollection<UserRole> UserRoles { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Identity.Domain.Entities;
 using Identity.Infrastructure.Database;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Identity.Api.Helpers
@@ -32,7 +33,7 @@ namespace Identity.Api.Helpers
 
             foreach (Permission permission in permissions)
             {
-                if (!dbContext.Permissions.Any(p => p.Name == permission.Name))
+                if (!(await dbContext.Permissions.AnyAsync(p => p.Name == permission.Name)))
                 {
                     dbContext.Permissions.Add(permission);
                 }
@@ -54,7 +55,7 @@ namespace Identity.Api.Helpers
                         PermissionId = dbContext.Permissions.Single(p => p.Name == permissionName).Id
                     });
 
-                    dbContext.RolePermissions.AddRange(rolePermissions);
+                    await dbContext.RolePermissions.AddRangeAsync(rolePermissions);
                     await dbContext.SaveChangesAsync();
                 }
             }
@@ -74,6 +75,7 @@ namespace Identity.Api.Helpers
                     FirstName = "Tu",
                     LastName = "Ho",
                     Bio = "Russian Bias",
+                    Title = "Manager",
                     EmailConfirmed = true,
                     CreatedBy = SuperAdmin,
                     ModifiedBy = null,
@@ -82,7 +84,7 @@ namespace Identity.Api.Helpers
                     TenantId = 1,
                     IsAdmin = true,
                 },
-                new()
+            new()
                 {
                     UserName = "ApiUser-Tenant-0",
                     Email = "ApiTenant0@example.com",
@@ -90,6 +92,7 @@ namespace Identity.Api.Helpers
                     FirstName = "Api",
                     LastName = "User",
                     Bio = null,
+                    Title = "Api",
                     EmailConfirmed = true,
                     CreatedBy = SuperAdmin,
                     ModifiedBy = null,
@@ -116,7 +119,11 @@ namespace Identity.Api.Helpers
                     // Add claims based on permissions of assigned role
                     Role? role = await roleManager.FindByNameAsync(roleName) ?? new();
 
-                    IQueryable<string> rolePermissions = dbContext.RolePermissions.Where(rp => rp.RoleId == role.Id).Select(rp => rp.Permission.Name);
+                    // Fetch the role permissions and execute the query immediately
+                    IList<string> rolePermissions = await dbContext.RolePermissions
+                        .Where(rp => rp.RoleId == role.Id)
+                        .Select(rp => rp.Permission.Name)
+                        .ToListAsync();  // Executes and fetches the result
 
                     foreach (string permission in rolePermissions)
                     {
