@@ -21,8 +21,8 @@ namespace Identity.Application
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
             // Adds setting json
-            services.Configure<JwtSettings>(configuration.GetSection("JWT"));
-            services.Configure<ApplicationSettings>(configuration.GetSection("ApplicationSettings"));
+            services.Configure<JwtSettings>(configuration.GetSection(nameof(JwtSettings)));
+            services.Configure<ApplicationSettings>(configuration.GetSection(nameof(ApplicationSettings)));
 
             const int MaxRequestBodySize = 100000000;
             string _myAllowSpecificOrigins = ApplicationConstants.MyAllowSpecificOrigins;
@@ -66,8 +66,6 @@ namespace Identity.Application
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             services.AddScoped<IUserService, UserService>();
-            //services.AddScoped<IMenuService, MenuService>();
-            //services.AddSingleton<ICacheService, RedisDistributedCacheService>();
 
             return services;
         }

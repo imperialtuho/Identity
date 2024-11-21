@@ -17,7 +17,7 @@ namespace Identity.Api.Controllers
         /// <param name="request">The request.</param>
         /// <returns>System.Task{IActionResult}.</returns>
         [HttpPost("{userId}/roles")]
-        [Authorize(Roles = $"{SuperAdmin}", Policy = Policies.Super)]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{Policies.Super}, {Policies.Create}, {Policies.Update}")]
         public async Task<IActionResult> AddRoleToUserAsync([FromRoute] string userId, [FromBody] RoleDto request)
         {
             if (string.IsNullOrEmpty(userId))

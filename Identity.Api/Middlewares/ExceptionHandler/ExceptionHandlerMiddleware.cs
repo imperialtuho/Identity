@@ -13,7 +13,7 @@ namespace Identity.Api.Middlewares.ExceptionHandler
             {
                 var exceptionHandlerPathFeature = httpContext.Features.Get<IExceptionHandlerPathFeature>();
                 Exception specificException = exceptionHandlerPathFeature!.Error;
-                logger.LogError($"Api endpoint {exceptionHandlerPathFeature.Path} failed with Unhandled Exception: {JsonConvert.SerializeObject(specificException)}");
+                logger.LogError("Api endpoint {Path} failed with unhandled exception: {SpecificException}", exceptionHandlerPathFeature.Path, specificException.Message);
 
                 var responseObject = new ExceptionHandlerResponse
                 {
