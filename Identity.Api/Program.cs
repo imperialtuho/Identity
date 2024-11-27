@@ -1,4 +1,5 @@
 using Identity.Api.Helpers;
+using Identity.Api.Middlewares.Authentication;
 using Identity.Api.Middlewares.ExceptionHandler;
 using Identity.Application;
 using Identity.Application.Configurations.Settings;
@@ -40,6 +41,7 @@ namespace Identity.Api
 
             builder.Services.AddInfrastructureServices(builder.Configuration);
             builder.Services.AddApplicationServices(builder.Configuration);
+            builder.Services.AddJwtServices(builder.Configuration);
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -59,13 +61,12 @@ namespace Identity.Api
             if (!ExceptionHandlerMiddleware.IsProductionEnvironment(builder.Environment, _environmentName))
             {
                 app.UseDeveloperExceptionPage();
-                app.UseExceptionHandler(
-                    ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(true, logger));
+                app.UseExceptionHandler(ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(true, logger));
             }
             else
             {
-                app.UseExceptionHandler(
-                    ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(false, logger));
+                app.UseExceptionHandler(ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(false, logger));
+                app.UseHsts();
             }
 
             app.UseHttpsRedirection();

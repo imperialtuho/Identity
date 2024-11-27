@@ -91,36 +91,36 @@ namespace Identity.Infrastructure
 
             // Adds system policies.
             var allowRoles = configuration.GetSection("ApplicationSettings:AllowedRoles").Get<IList<string>>()
-            ?? [DefaultRoleValue.SuperAdmin, DefaultRoleValue.Admin, DefaultRoleValue.AppUser, DefaultRoleValue.ApiUser];
+            ?? [ApplicationDefaultRoleValue.SuperAdmin, ApplicationDefaultRoleValue.Admin, ApplicationDefaultRoleValue.AppUser, ApplicationDefaultRoleValue.ApiUser];
 
             string roles = string.Join(",", allowRoles);
             string claimType = "Policy";
 
             services.AddAuthorizationBuilder()
-                .AddPolicy(nameof(Policies.Create), policy =>
+                .AddPolicy(nameof(ApplicationPolicies.Create), policy =>
                 {
-                    policy.RequireClaim(claimType, Policies.Create);
+                    policy.RequireClaim(claimType, ApplicationPolicies.Create);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy(nameof(Policies.Read), policy =>
+                .AddPolicy(nameof(ApplicationPolicies.Read), policy =>
                 {
-                    policy.RequireClaim(claimType, Policies.Read);
+                    policy.RequireClaim(claimType, ApplicationPolicies.Read);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy(nameof(Policies.Update), policy =>
+                .AddPolicy(nameof(ApplicationPolicies.Update), policy =>
                 {
-                    policy.RequireClaim(claimType, Policies.Update);
+                    policy.RequireClaim(claimType, ApplicationPolicies.Update);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy(nameof(Policies.Delete), policy =>
+                .AddPolicy(nameof(ApplicationPolicies.Delete), policy =>
                 {
-                    policy.RequireClaim(claimType, Policies.Delete);
+                    policy.RequireClaim(claimType, ApplicationPolicies.Delete);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy(nameof(Policies.Super), policy =>
+                .AddPolicy(nameof(ApplicationPolicies.Super), policy =>
                 {
-                    policy.RequireClaim(claimType, Policies.Super);
-                    policy.RequireRole(DefaultRoleValue.SuperAdmin);
+                    policy.RequireClaim(claimType, ApplicationPolicies.Super);
+                    policy.RequireRole(ApplicationDefaultRoleValue.SuperAdmin);
                 });
 
             // Adds Repositories.

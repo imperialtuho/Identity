@@ -21,7 +21,7 @@ namespace Identity.Api.Controllers
         /// <param name="isSoftDelete">The param which action will be soft or hard delete</param>
         /// <returns>True/False on based on result of the delete action.</returns>
         [HttpDelete("{userId}")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = Policies.Delete)]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = ApplicationPolicies.Delete)]
         public async Task<IActionResult> DeleteAsync([FromRoute] string userId, bool isSoftDelete = true)
         {
             if (string.IsNullOrEmpty(userId))

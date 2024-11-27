@@ -17,7 +17,7 @@ namespace Identity.Api.Controllers
         /// <param name="request">The request.</param>
         /// <returns>System.Task{IActionResult}.</returns>
         [HttpPost("{userId}/roles")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{Policies.Super}, {Policies.Create}, {Policies.Update}")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{ApplicationPolicies.Super}, {ApplicationPolicies.Create}, {ApplicationPolicies.Update}")]
         public async Task<IActionResult> AddRoleToUserAsync([FromRoute] string userId, [FromBody] RoleDto request)
         {
             if (string.IsNullOrEmpty(userId))
@@ -34,7 +34,7 @@ namespace Identity.Api.Controllers
         /// <param name="userId">The userId.</param>
         /// <returns>GetUserRolesByIdDto.</returns>
         [HttpGet("{userId}/roles")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{Policies.Super}, {Policies.Read}")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{ApplicationPolicies.Super}, {ApplicationPolicies.Read}")]
         public async Task<IActionResult> GetUserRolesByUserIdAsync(string userId)
         {
             if (string.IsNullOrEmpty(userId))

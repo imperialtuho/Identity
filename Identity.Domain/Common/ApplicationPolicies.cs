@@ -1,6 +1,6 @@
 ﻿namespace Identity.Domain.Common
 {
-    public static class Policies
+    public static class ApplicationPolicies
     {
         public const string Super = "Super";
         public const string Create = "Create";

@@ -43,17 +43,17 @@ namespace Identity.Api.Middlewares.Authentication
         /// <summary>
         /// The cacheKey.
         /// </summary>
-        private const string CacheKey = "JwtSettings";
+        private const string CacheKey = nameof(JwtSettings);
 
         /// <summary>
         /// The Unauthorized string constant.
         /// </summary>
-        private const string Unauthorized = "Unauthorized";
+        private const string Unauthorized = nameof(Unauthorized);
 
         /// <summary>
         /// The Bearer.
         /// </summary>
-        private const string Bearer = "Bearer";
+        private const string Bearer = nameof(Bearer);
 
         /// <summary>
         /// Handle Authenticate Async.
@@ -91,7 +91,8 @@ namespace Identity.Api.Middlewares.Authentication
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "ValidateToken Failed");
+                _logger.LogError(ex, $"{nameof(ValidateTokenAsync)} failed!");
+
                 return AuthenticateResult.Fail(ex.Message);
             }
         }
@@ -106,8 +107,8 @@ namespace Identity.Api.Middlewares.Authentication
             ClaimsIdentity identity = await GetIdentityFromTokenAsync(token);
             identity.AddClaim(new Claim("AccessToken", token));
 
-            GenericPrincipal principal = new GenericPrincipal(identity, null);
-            AuthenticationTicket ticket = new AuthenticationTicket(principal, Scheme.Name);
+            GenericPrincipal principal = new(identity, null);
+            AuthenticationTicket ticket = new(principal, Scheme.Name);
 
             return AuthenticateResult.Success(ticket);
         }

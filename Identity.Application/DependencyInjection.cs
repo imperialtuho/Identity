@@ -35,7 +35,7 @@ namespace Identity.Application
             services.AddSingleton(config);
             services.AddScoped<IMapper, ServiceMapper>();
             services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
-
+            services.AddHttpClient();
             services.AddHttpContextAccessor();
             services.AddTransient<IPrincipal>(provider => provider.GetService<IHttpContextAccessor>()!.HttpContext!.User);
 
@@ -45,6 +45,9 @@ namespace Identity.Application
                 options.Providers.Add<BrotliCompressionProvider>();
                 options.Providers.Add<GzipCompressionProvider>();
             });
+
+            // Memory cache.
+            services.AddMemoryCache();
 
             // CORS
             services.AddCors(options =>

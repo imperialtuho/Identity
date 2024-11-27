@@ -75,7 +75,7 @@ namespace Identity.Application.Services
             }
 
             User? appUser = await _userManager.FindByEmailAsync(newUser.Email!) ?? throw new NotFoundException($"User with {newUser.Email} not found!");
-            IList<string> addingRoles = [DefaultRoleValue.AppUser];
+            IList<string> addingRoles = [ApplicationDefaultRoleValue.AppUser];
 
             await AddRolesAsync(appUser, addingRoles);
             await AddClaimsAsync(appUser, claims);
@@ -105,7 +105,7 @@ namespace Identity.Application.Services
             }
 
             User? appUser = await _userManager.FindByEmailAsync(newUser.Email!) ?? throw new NotFoundException($"User with {newUser.Email} not found!");
-            IList<string> addingRoles = [DefaultRoleValue.AppUser];
+            IList<string> addingRoles = [ApplicationDefaultRoleValue.AppUser];
 
             await AddRolesAsync(appUser, addingRoles);
             await AddClaimsAsync(appUser, claims);
@@ -384,11 +384,11 @@ namespace Identity.Application.Services
 
         private User InitializeUser(UserDto user, IList<string>? roles)
         {
-            string defaultCreatedBy = DefaultRoleValue.AppUser;
+            string defaultCreatedBy = ApplicationDefaultRoleValue.AppUser;
 
-            if (roles?.FirstOrDefault(role => role.Equals(DefaultRoleValue.Admin)) != null)
+            if (roles?.FirstOrDefault(role => role.Equals(ApplicationDefaultRoleValue.Admin)) != null)
             {
-                defaultCreatedBy = DefaultRoleValue.SuperAdmin;
+                defaultCreatedBy = ApplicationDefaultRoleValue.SuperAdmin;
             }
 
             User result = _mapper.Map<User>(user);

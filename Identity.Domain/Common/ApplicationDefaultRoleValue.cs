@@ -1,6 +1,6 @@
 ﻿namespace Identity.Domain.Common
 {
-    public static class DefaultRoleValue
+    public static class ApplicationDefaultRoleValue
     {
         public const string SuperAdmin = "SuperAdministrator";
         public const string Admin = "Admin";

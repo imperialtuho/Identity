@@ -24,11 +24,11 @@ namespace Identity.Api.Helpers
             // Step 1: Seed Permissions
             var permissions = new List<Permission>
             {
-                new () { Id = Guid.NewGuid(), Name = Policies.Super, Description = "All permission" },
-                new () { Id = Guid.NewGuid(), Name = Policies.Create, Description = "Create permission" },
-                new () { Id = Guid.NewGuid(), Name = Policies.Read, Description = "Read permission" },
-                new () { Id = Guid.NewGuid(), Name = Policies.Update, Description = "Update permission" },
-                new () { Id = Guid.NewGuid(), Name = Policies.Delete, Description = "Delete permission" }
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Super, Description = "All permission" },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Create, Description = "Create permission" },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Read, Description = "Read permission" },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Update, Description = "Update permission" },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Delete, Description = "Delete permission" }
             };
 
             foreach (Permission permission in permissions)
@@ -62,9 +62,9 @@ namespace Identity.Api.Helpers
 
             // Define roles with associated permissions
             await CreateRoleWithPermissionsAsync(SuperAdmin, permissions.Select(p => p.Name));
-            await CreateRoleWithPermissionsAsync(Admin, [Policies.Read, Policies.Create, Policies.Update, Policies.Delete]);
-            await CreateRoleWithPermissionsAsync(ApiUser, [Policies.Read, Policies.Create, Policies.Update]);
-            await CreateRoleWithPermissionsAsync(AppUser, [Policies.Read, Policies.Create, Policies.Update]);
+            await CreateRoleWithPermissionsAsync(Admin, [ApplicationPolicies.Read, ApplicationPolicies.Create, ApplicationPolicies.Update, ApplicationPolicies.Delete]);
+            await CreateRoleWithPermissionsAsync(ApiUser, [ApplicationPolicies.Read, ApplicationPolicies.Create, ApplicationPolicies.Update]);
+            await CreateRoleWithPermissionsAsync(AppUser, [ApplicationPolicies.Read, ApplicationPolicies.Create, ApplicationPolicies.Update]);
 
             IList<User> users = [
             new()

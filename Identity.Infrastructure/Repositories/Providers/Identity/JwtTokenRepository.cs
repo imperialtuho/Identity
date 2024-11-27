@@ -17,8 +17,8 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
 {
     public class JwtTokenRepository : DbSqlConnectionEFRepositoryBase<ApplicationDbContext, RefreshToken>, ITokenRepository
     {
+        private const string SecurityAlgorithmMethod = SecurityAlgorithms.HmacSha256Signature;
         private readonly JwtSettings _jwtSettings;
-
         private readonly IRefreshTokenRepository _refreshTokenRepository;
 
         public JwtTokenRepository(IOptions<JwtSettings> options,
@@ -71,7 +71,7 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
-                ValidateLifetime = true,
+                ValidateLifetime = false, // We don't validate this due to expired token needs to be refreshed. So, we'll check in RefreshToken's ExpiryDate.
                 RequireExpirationTime = true,
                 ValidateIssuerSigningKey = true,
                 ValidAudience = _jwtSettings.Audience,
@@ -83,7 +83,7 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             ClaimsPrincipal principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
 
             if (securityToken is not JwtSecurityToken jwtSecurityToken
-                || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithmMethod, StringComparison.InvariantCultureIgnoreCase))
             {
                 return null;
             }
@@ -145,12 +145,16 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
 
         private JwtSecurityToken CreateJwtToken(Claim[] claims, SigningCredentials credentials, DateTime expiration)
         {
-            return new JwtSecurityToken(_jwtSettings.Issuer, _jwtSettings.Audience, claims, expiration, signingCredentials: credentials);
+            return new JwtSecurityToken(issuer: _jwtSettings.Issuer,
+                                        audience: _jwtSettings.Audience,
+                                        claims: claims,
+                                        expires: expiration,
+                                        signingCredentials: credentials);
         }
 
         private SigningCredentials CreateSigningCredentials()
         {
-            return new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)) { KeyId = _jwtSettings.Kid }, SecurityAlgorithms.HmacSha256Signature);
+            return new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)) { KeyId = _jwtSettings.Kid }, SecurityAlgorithmMethod);
         }
     }
 }
