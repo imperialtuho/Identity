@@ -41,7 +41,5 @@ namespace Identity.Domain.Entities
         public virtual ICollection<RefreshToken> RefreshTokens { get; set; }
 
         public virtual ICollection<UserMenu> UserMenus { get; set; }
-
-        public ICollection<UserRole> UserRoles { get; set; }
     }
 }

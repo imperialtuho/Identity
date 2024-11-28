@@ -49,7 +49,7 @@ namespace Identity.Api.Helpers
                     var role = new Role { Id = Guid.NewGuid(), Name = roleName };
                     await roleManager.CreateAsync(role);
 
-                    var rolePermissions = permissionNames.Select(permissionName => new RolePermission
+                    IEnumerable<RolePermission> rolePermissions = permissionNames.Select(permissionName => new RolePermission
                     {
                         RoleId = role.Id,
                         PermissionId = dbContext.Permissions.Single(p => p.Name == permissionName).Id
@@ -61,10 +61,10 @@ namespace Identity.Api.Helpers
             }
 
             // Define roles with associated permissions
-            await CreateRoleWithPermissionsAsync(SuperAdmin, permissions.Select(p => p.Name));
-            await CreateRoleWithPermissionsAsync(Admin, [ApplicationPolicies.Read, ApplicationPolicies.Create, ApplicationPolicies.Update, ApplicationPolicies.Delete]);
-            await CreateRoleWithPermissionsAsync(ApiUser, [ApplicationPolicies.Read, ApplicationPolicies.Create, ApplicationPolicies.Update]);
-            await CreateRoleWithPermissionsAsync(AppUser, [ApplicationPolicies.Read, ApplicationPolicies.Create, ApplicationPolicies.Update]);
+            await CreateRoleWithPermissionsAsync(SuperAdmin, [ApplicationPolicies.Super]);
+            await CreateRoleWithPermissionsAsync(Admin, ApplicationPolicies.DefaultPolicies);
+            await CreateRoleWithPermissionsAsync(ApiUser, ApplicationPolicies.DefaultPolicies);
+            await CreateRoleWithPermissionsAsync(AppUser, ApplicationPolicies.DefaultPolicies);
 
             IList<User> users = [
             new()
@@ -78,8 +78,8 @@ namespace Identity.Api.Helpers
                     Title = "Manager",
                     EmailConfirmed = true,
                     CreatedBy = SuperAdmin,
-                    ModifiedBy = null,
                     CreatedDate = DateTime.UtcNow,
+                    ModifiedBy = null,
                     ModifiedDate = null,
                     TenantId = 1,
                     IsAdmin = true,
@@ -95,8 +95,8 @@ namespace Identity.Api.Helpers
                     Title = "Api",
                     EmailConfirmed = true,
                     CreatedBy = SuperAdmin,
-                    ModifiedBy = null,
                     CreatedDate = DateTime.UtcNow,
+                    ModifiedBy = null,
                     ModifiedDate = null,
                     TenantId = 1,
                     IsAdmin = false,

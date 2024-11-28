@@ -12,6 +12,7 @@ namespace Identity.Domain.Extensions
 
             foreach (INavigation navigation in navigations)
             {
+                // Safely include navigation properties
                 query = query.Include(navigation.Name);
             }
 

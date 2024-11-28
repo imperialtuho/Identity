@@ -429,18 +429,11 @@ namespace Identity.Api.Migrations
                     b.Property<Guid>("RoleId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasMaxLength(34)
-                        .HasColumnType("nvarchar(34)");
-
                     b.HasKey("UserId", "RoleId");
 
+                    b.HasIndex("RoleId");
+
                     b.ToTable("AspNetUserRoles", (string)null);
-
-                    b.HasDiscriminator().HasValue("IdentityUserRole<Guid>");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
@@ -460,15 +453,6 @@ namespace Identity.Api.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
-                });
-
-            modelBuilder.Entity("Identity.Domain.Entities.UserRole", b =>
-                {
-                    b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasDiscriminator().HasValue("UserRole");
                 });
 
             modelBuilder.Entity("Identity.Domain.Entities.Menu", b =>
@@ -575,8 +559,14 @@ namespace Identity.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
                 {
+                    b.HasOne("Identity.Domain.Entities.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Identity.Domain.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -584,23 +574,13 @@ namespace Identity.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Identity.Domain.Entities.UserRole", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
-                    b.HasOne("Identity.Domain.Entities.Role", "Role")
-                        .WithMany("UserRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Identity.Domain.Entities.User", "User")
-                        .WithMany("UserRoles")
+                    b.HasOne("Identity.Domain.Entities.User", null)
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Role");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Identity.Domain.Entities.Menu", b =>
@@ -622,8 +602,6 @@ namespace Identity.Api.Migrations
                     b.Navigation("RoleMenus");
 
                     b.Navigation("RolePermissions");
-
-                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("Identity.Domain.Entities.User", b =>
@@ -631,8 +609,6 @@ namespace Identity.Api.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("UserMenus");
-
-                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }
