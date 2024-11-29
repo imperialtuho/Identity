@@ -3,6 +3,7 @@ using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Application.Interfaces.Services;
+using Identity.Application.Services.Base;
 using Identity.Domain.Common;
 using Identity.Domain.Constants;
 using Identity.Domain.Entities;

@@ -11,9 +11,7 @@ namespace Identity.Api.Controllers
     /// The SettingsController constructor.
     /// </summary>
     /// <param name="jwtSettings">The jwtSettings.</param>
-    [ApiController]
-    [Route("api/[controller]")]
-    public class SettingsController(IOptions<JwtSettings> jwtSettings) : ControllerBase
+    public class SettingsController(IOptions<JwtSettings> jwtSettings) : BaseController
     {
         /// <summary>
         /// Get JWT settings for API consumer.
@@ -22,7 +20,7 @@ namespace Identity.Api.Controllers
         /// <returns>JwtSettings.</returns>
         [HttpPost("jwt")]
         [AllowAnonymous]
-        public ActionResult<JwtSettings> GetJwtSettings([FromBody] PasswordDto passwordDto)
+        public IActionResult GetJwtSettings([FromBody] PasswordDto passwordDto)
         {
             string password = passwordDto.Password;
             string inValidPassword = $"{nameof(password)} is invalid!";
@@ -41,7 +39,7 @@ namespace Identity.Api.Controllers
                 return BadRequest(inValidPassword);
             }
 
-            return Ok(settings);
+            return Result(settings, HttpStatusCode.OK);
         }
     }
 }

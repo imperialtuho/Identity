@@ -29,7 +29,7 @@ namespace Identity.Application
             // Adds system services
             // Dependency injection support for Mapster
             // https://github.com/MapsterMapper/Mapster/wiki/Dependency-Injection
-            var config = new TypeAdapterConfig();
+            var config = TypeAdapterConfig.GlobalSettings;
             config.Apply(new MappingRegistration());
             config.Scan(Assembly.GetExecutingAssembly());
             services.AddSingleton(config);
@@ -69,6 +69,7 @@ namespace Identity.Application
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IPermissionService, PermissionService>();
 
             return services;
         }

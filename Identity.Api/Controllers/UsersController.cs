@@ -7,12 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace Identity.Api.Controllers
 {
     /// <summary>
-    /// Users Controller.
+    /// Users Controller constructor.
     /// </summary>
-    [Authorize]
-    [ApiController]
-    [Route("api/[controller]")]
-    public class UsersController(IUserService userService) : ControllerBase
+    public class UsersController(IUserService userService) : BaseController
     {
         /// <summary>
         /// Deletes user by id.
@@ -31,7 +28,7 @@ namespace Identity.Api.Controllers
 
             bool result = await userService.DeleteByIdAsync(userId, isSoftDelete);
 
-            return Ok(result);
+            return Result(result, HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -50,7 +47,7 @@ namespace Identity.Api.Controllers
 
             UserDto result = await userService.GetByIdAsync(id);
 
-            return Ok(result);
+            return Result(result, HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -70,7 +67,7 @@ namespace Identity.Api.Controllers
 
             PaginatedResponse<UserDto> result = await userService.SearchAsync(request, isIncludingDeletedUser);
 
-            return Ok(result);
+            return Result(result, HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -95,7 +92,7 @@ namespace Identity.Api.Controllers
 
             UserDto result = await userService.UpdateAsync(userId, request);
 
-            return Ok(result);
+            return Result(result, HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -115,7 +112,7 @@ namespace Identity.Api.Controllers
 
             bool result = await userService.UpdatePasswordAsync(userId, password);
 
-            return Ok(result);
+            return Result(result, HttpStatusCode.OK);
         }
     }
 }

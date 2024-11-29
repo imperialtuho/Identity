@@ -10,19 +10,19 @@ namespace Identity.Application.Interfaces.Repositories
 
         Task AddAsync(T entity);
 
-        Task AddAndSaveChangesAsync(T entity);
+        Task<bool> AddAndSaveChangesAsync(T entity);
 
         Task<T> AddWithSaveChangesAndReturnModelAsync(T entity);
 
         Task AddRangeAsync(IEnumerable<T> entities);
 
-        Task UpdateAndSaveChangesAsync(T entity);
+        Task<bool> UpdateAndSaveChangesAsync(T entity);
 
         Task<T> UpdateWithSaveChangesAndReturnModelAsync(T entity);
 
-        Task DeleteAndSaveChangesAsync(T entity);
+        Task<bool> DeleteAndSaveChangesAsync(T entity);
 
-        Task DeleteRangeAndSaveChangesAsync(IEnumerable<T> entities);
+        Task<bool> DeleteRangeAndSaveChangesAsync(IEnumerable<T> entities);
 
         void DeleteRange(IEnumerable<T> entities);
 

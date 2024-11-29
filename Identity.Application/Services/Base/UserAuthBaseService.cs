@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Text.RegularExpressions;
 
-namespace Identity.Application.Services
+namespace Identity.Application.Services.Base
 {
     public class UserAuthBaseService
     {

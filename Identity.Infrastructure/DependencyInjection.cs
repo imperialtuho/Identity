@@ -50,7 +50,7 @@ namespace Identity.Infrastructure
                 options.Lockout.AllowedForNewUsers = false;
 
                 // User settings.
-                options.User.RequireUniqueEmail = false;
+                options.User.RequireUniqueEmail = true;
             })
             .AddRoles<Role>()
             .AddClaimsPrincipalFactory<UserClaimsPrincipalFactory<User, Role>>()
@@ -90,11 +90,10 @@ namespace Identity.Infrastructure
             });
 
             // Adds system policies.
-            var allowRoles = configuration.GetSection("ApplicationSettings:AllowedRoles").Get<IList<string>>()
-            ?? [ApplicationDefaultRoleValue.SuperAdmin, ApplicationDefaultRoleValue.Admin, ApplicationDefaultRoleValue.AppUser, ApplicationDefaultRoleValue.ApiUser];
+            List<string> allowRoles = [ApplicationDefaultRoleValue.SuperAdmin, ApplicationDefaultRoleValue.Admin, ApplicationDefaultRoleValue.AppUser, ApplicationDefaultRoleValue.ApiUser];
 
             string roles = string.Join(",", allowRoles);
-            string claimType = "Policy";
+            string claimType = nameof(Permission);
 
             services.AddAuthorizationBuilder()
                 .AddPolicy(nameof(ApplicationPolicies.Create), policy =>
@@ -125,10 +124,9 @@ namespace Identity.Infrastructure
 
             // Adds Repositories.
             services.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
-
             services.AddScoped<ITokenRepository, JwtTokenRepository>();
-
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            services.AddScoped<IPermissionRepository, PermissionRepository>();
 
             return services;
         }

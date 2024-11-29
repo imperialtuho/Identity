@@ -4,6 +4,7 @@ using Identity.Application.Dtos;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Application.Interfaces.Services;
+using Identity.Application.Services.Base;
 using Identity.Domain.Common;
 using Identity.Domain.Entities;
 using Identity.Domain.Exceptions;

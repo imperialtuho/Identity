@@ -5,55 +5,56 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Identity.Api.Controllers
 {
-    [ApiController]
-    [Authorize]
-    [Route("api/[controller]")]
-    public class AuthController(IAuthService authSerivce) : ControllerBase
+    /// <summary>
+    /// Authorization Controller constructor.
+    /// </summary>
+    /// <param name="authSerivce">The authService.</param>
+    public class AuthController(IAuthService authSerivce) : BaseController
     {
         /// <summary>
         /// Login.
         /// </summary>
         /// <param name="model">The model.</param>
-        /// <returns>System.Task{ActionResult}.</returns>
+        /// <returns>System.Task{IActionResult}.</returns>
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<ActionResult> LoginAsync([FromBody] LoginDto model, [FromQuery] bool isEmailConfirmRequired)
+        public async Task<IActionResult> LoginAsync([FromBody] LoginDto model, [FromQuery] bool isEmailConfirmRequired)
         {
             if (isEmailConfirmRequired)
             {
-                return Ok(await authSerivce.LoginRequireEmailConfirmAsync(model.Email, model.Password));
+                return Result(await authSerivce.LoginRequireEmailConfirmAsync(model.Email, model.Password), HttpStatusCode.OK);
             }
 
-            return Ok(await authSerivce.LoginAsync(model.Email, model.Password));
+            return Result(await authSerivce.LoginAsync(model.Email, model.Password), HttpStatusCode.OK);
         }
 
         /// <summary>
         /// Registers user.
         /// </summary>
         /// <param name="model">The model.</param>
-        /// <returns>System.Task{ActionResult}.</returns>
+        /// <returns>System.Task{IActionResult}.</returns>
         [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<ActionResult> RegisterAsync([FromBody] RegisterDto model, bool isEmailConfirmRequired)
+        public async Task<IActionResult> RegisterAsync([FromBody] RegisterDto model, bool isEmailConfirmRequired)
         {
             if (isEmailConfirmRequired)
             {
-                return Ok(await authSerivce.RegisterWithEmailConfirmAsync(model));
+                return Result(await authSerivce.RegisterWithEmailConfirmAsync(model), HttpStatusCode.Created);
             }
 
-            return Ok(await authSerivce.RegisterAsync(model));
+            return Result(await authSerivce.RegisterAsync(model), HttpStatusCode.Created);
         }
 
         /// <summary>
         /// Refreshes JWT token.
         /// </summary>
         /// <param name="token">The token.</param>
-        /// <returns>System.Task{ActionResult}.</returns>
+        /// <returns>System.Task{IActionResult}.</returns>
         [HttpPost("refresh-token")]
         [AllowAnonymous]
-        public async Task<ActionResult> RefreshTokenAsync([FromBody] TokenDto token)
+        public async Task<IActionResult> RefreshTokenAsync([FromBody] TokenDto token)
         {
-            return Ok(await authSerivce.RefreshTokenAsync(token));
+            return Result(await authSerivce.RefreshTokenAsync(token), HttpStatusCode.OK);
         }
     }
 }

@@ -1,12 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Identity.Domain.Entities
+﻿namespace Identity.Application.Dtos.Base
 {
-    public class BaseEntity<TId>
+    public class BaseDto
     {
-        [Key]
-        public TId Id { get; set; }
-
         public int? TenantId { get; set; }
 
         public DateTime? CreatedDate { get; set; }
@@ -18,7 +13,5 @@ namespace Identity.Domain.Entities
         public string? ModifiedBy { get; set; }
 
         public bool IsActive { get; set; }
-
-        public bool IsDeleted { get; set; }
     }
 }

@@ -5,10 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Identity.Api.Controllers
 {
-    [ApiController]
-    [Authorize]
-    [Route("api/[controller]")]
-    public class UserRolesController(IAuthService authService) : ControllerBase
+    /// <summary>
+    /// The UserRolesController constructor.
+    /// </summary>
+    /// <param name="authService">The authService.</param>
+    public class UserRolesController(IAuthService authService) : BaseController
     {
         /// <summary>
         /// Adds roles.
@@ -25,7 +26,7 @@ namespace Identity.Api.Controllers
                 return BadRequest($"{nameof(userId)} is required");
             }
 
-            return Ok(await authService.AddUserToRolesAsync(userId, request.Email, request.Roles));
+            return Result(await authService.AddUserToRolesAsync(userId, request.Email, request.Roles), HttpStatusCode.Created);
         }
 
         /// <summary>
@@ -44,7 +45,7 @@ namespace Identity.Api.Controllers
 
             GetUserRolesByIdDto result = await authService.GetUserRolesByIdAsync(userId);
 
-            return Ok(result);
+            return Result(result, HttpStatusCode.OK);
         }
     }
 }

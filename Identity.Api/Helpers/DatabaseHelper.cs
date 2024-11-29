@@ -6,6 +6,9 @@ using System.Security.Claims;
 
 namespace Identity.Api.Helpers
 {
+    /// <summary>
+    /// Database helper which will help seeding default data right after starting up the program.
+    /// </summary>
     public static class DatabaseHelper
     {
         public static async Task SeedAsync(IApplicationBuilder applicationBuilder)
@@ -21,14 +24,16 @@ namespace Identity.Api.Helpers
 
             await dbContext!.Database.EnsureCreatedAsync();
 
+            var currentDate = DateTime.UtcNow;
+
             // Step 1: Seed Permissions
             var permissions = new List<Permission>
             {
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Super, Description = "All permission" },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Create, Description = "Create permission" },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Read, Description = "Read permission" },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Update, Description = "Update permission" },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Delete, Description = "Delete permission" }
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Super, Description = "All permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Create, Description = "Create permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Read, Description = "Read permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Update, Description = "Update permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Delete, Description = "Delete permission", CreatedDate = currentDate, CreatedBy = SuperAdmin }
             };
 
             foreach (Permission permission in permissions)
@@ -78,7 +83,7 @@ namespace Identity.Api.Helpers
                     Title = "Manager",
                     EmailConfirmed = true,
                     CreatedBy = SuperAdmin,
-                    CreatedDate = DateTime.UtcNow,
+                    CreatedDate = currentDate,
                     ModifiedBy = null,
                     ModifiedDate = null,
                     TenantId = 1,
@@ -95,7 +100,7 @@ namespace Identity.Api.Helpers
                     Title = "Api",
                     EmailConfirmed = true,
                     CreatedBy = SuperAdmin,
-                    CreatedDate = DateTime.UtcNow,
+                    CreatedDate = currentDate,
                     ModifiedBy = null,
                     ModifiedDate = null,
                     TenantId = 1,
@@ -127,7 +132,7 @@ namespace Identity.Api.Helpers
 
                     foreach (string permission in rolePermissions)
                     {
-                        await userManager.AddClaimAsync(user, new Claim("Permission", permission));
+                        await userManager.AddClaimAsync(user, new Claim(nameof(Permission), permission));
                     }
                 }
             }
