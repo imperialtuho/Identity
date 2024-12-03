@@ -66,6 +66,13 @@ namespace Identity.Application.Services
             return user.Adapt<UserDto>();
         }
 
+        public async Task<IList<UserDto>> GetByIdsAsync(IList<string> ids)
+        {
+            IList<User> users = await _userManager.Users.Where(u => ids.Contains(u.Id.ToString())).ToListAsync();
+
+            return users.Adapt<IList<UserDto>>();
+        }
+
         public async Task<bool> ResendVerificationEmail(string email)
         {
             User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException($"User with {email} doesn't exist.");

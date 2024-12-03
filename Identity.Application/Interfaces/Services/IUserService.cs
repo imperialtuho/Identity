@@ -14,6 +14,8 @@ namespace Identity.Application.Interfaces.Services
 
         Task<UserDto> GetByIdAsync(string id);
 
+        Task<IList<UserDto>> GetByIdsAsync(IList<string> ids);
+
         Task<bool> ResendVerificationEmail(string email);
 
         Task<bool> ResetPasswordAsync(string currentEmail, string password, string token);

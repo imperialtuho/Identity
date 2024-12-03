@@ -1,6 +1,7 @@
 ﻿using Identity.Application.Dtos;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Services;
+using Identity.Domain.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -46,6 +47,25 @@ namespace Identity.Api.Controllers
             }
 
             UserDto result = await userService.GetByIdAsync(id);
+
+            return Result(result, HttpStatusCode.OK);
+        }
+
+        /// <summary>
+        /// Gets users by ids.
+        /// </summary>
+        /// <param name="ids">The ids.</param>
+        /// <returns>Return a list of users.</returns>
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetByIdsAsync([CsvBinder] IList<string> ids)
+        {
+            if (ids is null || ids.Count == 0)
+            {
+                return BadRequest($"{nameof(ids)} is required");
+            }
+
+            IList<UserDto> result = await userService.GetByIdsAsync(ids);
 
             return Result(result, HttpStatusCode.OK);
         }
