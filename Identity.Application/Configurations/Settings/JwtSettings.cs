@@ -13,6 +13,8 @@ namespace Identity.Application.Configurations.Settings
 
         public string Key { get; set; }
 
+        public bool EnableIdentityUrl { get; set; }
+
         [JsonIgnore]
         public string TokenValidityInSeconds { get; set; }
 

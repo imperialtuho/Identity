@@ -1,15 +1,16 @@
 ﻿using Identity.Application.Configurations.Settings;
+using Identity.Application.Dtos;
 using Identity.Domain.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Newtonsoft.Json;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace Identity.Api.Middlewares.Authentication
 {
@@ -56,6 +57,15 @@ namespace Identity.Api.Middlewares.Authentication
         private const string Bearer = nameof(Bearer);
 
         /// <summary>
+        /// Default JsonSerializerOptions.
+        /// </summary>
+        private readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true, // Optional: ignore case in property names
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+
+        /// <summary>
         /// Handle Authenticate Async.
         /// </summary>
         /// <returns>Task{AuthenticateResult}.</returns>
@@ -78,7 +88,7 @@ namespace Identity.Api.Middlewares.Authentication
                 return AuthenticateResult.Fail(Unauthorized);
             }
 
-            string? token = authorizationHeader.Substring(Bearer.Length).Trim();
+            string token = authorizationHeader.Substring(Bearer.Length).Trim();
 
             if (string.IsNullOrEmpty(token))
             {
@@ -107,8 +117,8 @@ namespace Identity.Api.Middlewares.Authentication
             ClaimsIdentity identity = await GetIdentityFromTokenAsync(token);
             identity.AddClaim(new Claim("AccessToken", token));
 
-            GenericPrincipal principal = new(identity, null);
-            AuthenticationTicket ticket = new(principal, Scheme.Name);
+            GenericPrincipal principal = new GenericPrincipal(identity, null);
+            AuthenticationTicket ticket = new AuthenticationTicket(principal, Scheme.Name);
 
             return AuthenticateResult.Success(ticket);
         }
@@ -131,11 +141,14 @@ namespace Identity.Api.Middlewares.Authentication
                 tokenValidationParameters.ValidateTokenReplay = true;
                 tokenValidationParameters.ValidAudience = jwtSettings.Audience;
                 tokenValidationParameters.ValidIssuer = jwtSettings.Issuer;
-                tokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key));
+                tokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)) { KeyId = jwtSettings.Kid };
 
                 var tokenDecoder = new JwtSecurityTokenHandler();
 
-                ClaimsPrincipal principal = tokenDecoder.ValidateToken(token, tokenValidationParameters, out _);
+                var jwtSecurityToken = (JwtSecurityToken)tokenDecoder.ReadToken(token);
+                string tokenRaw = jwtSettings.EnableIdentityUrl ? token : jwtSecurityToken.RawData;
+
+                ClaimsPrincipal principal = tokenDecoder.ValidateToken(tokenRaw, tokenValidationParameters, out _);
 
                 return principal.Identities.First();
             }
@@ -178,14 +191,21 @@ namespace Identity.Api.Middlewares.Authentication
 
                 using HttpClient client = httpClientFactory.CreateClient();
 
-                var content = new StringContent(AesEncryptionHelper.Encrypt(appSettings.Password, appSettings.Password), Encoding.UTF8, "application/json");
+                string password = AesEncryptionHelper.Encrypt(appSettings.Password, appSettings.Password);
+
+                var passwordDto = new PasswordDto()
+                {
+                    Password = password
+                };
+
+                var content = new StringContent(JsonSerializer.Serialize(passwordDto), Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response = await client.PostAsync($"{IdentityUrl}settings/jwt", content);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    string? settingsJson = await response.Content.ReadAsStringAsync();
-                    JwtSettings? jwtSettings = JsonConvert.DeserializeObject<JwtSettings>(settingsJson);
+                    string settingsJson = await response.Content.ReadAsStringAsync();
+                    JwtSettings? jwtSettings = JsonSerializer.Deserialize<JwtSettings>(settingsJson, JsonSerializerOptions);
 
                     if (jwtSettings != null)
                     {
