@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace Identity.Api.Controllers.V1
+namespace Identity.Api.Controllers
 {
     /// <summary>
     /// The SettingsController constructor.
     /// </summary>
     /// <param name="jwtSettings">The jwtSettings.</param>
-    public class SettingsController(IOptions<JwtSettings> jwtSettings) : BaseV1Controller
+    public class SettingsController(IOptions<JwtSettings> jwtSettings) : BaseController
     {
         /// <summary>
         /// Get JWT settings for API consumer.

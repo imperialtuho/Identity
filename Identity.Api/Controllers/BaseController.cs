@@ -1,17 +1,14 @@
-﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Identity.Api.Controllers.V1
+namespace Identity.Api.Controllers
 {
     /// <summary>
     /// Base controller.
     /// </summary>
     [Authorize]
     [ApiController]
-    [ApiVersion("1.0")]
-    [Route("api/v{version:ApiVersion}/[controller]")]
-    public class BaseV1Controller : ControllerBase
+    public class BaseController : ControllerBase
     {
         /// <summary>
         /// Return a result from performing action.

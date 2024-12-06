@@ -5,12 +5,12 @@ using Identity.Domain.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Identity.Api.Controllers.V1
+namespace Identity.Api.Controllers
 {
     /// <summary>
     /// Users Controller constructor.
     /// </summary>
-    public class UsersController(IUserService userService) : BaseV1Controller
+    public class UsersController(IUserService userService) : BaseController
     {
         /// <summary>
         /// Deletes user by id.

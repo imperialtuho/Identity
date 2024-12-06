@@ -3,13 +3,13 @@ using Identity.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Identity.Api.Controllers.V1
+namespace Identity.Api.Controllers
 {
     /// <summary>
     /// The permission controller.
     /// </summary>
     [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
-    public class PermissionController(IPermissionService permissionService) : BaseV1Controller
+    public class PermissionController(IPermissionService permissionService) : BaseController
     {
         [HttpPost]
         [Authorize(Roles = $"{SuperAdmin}", Policy = $"{ApplicationPolicies.Super}")]

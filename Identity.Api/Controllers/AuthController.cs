@@ -1,15 +1,18 @@
-﻿using Identity.Application.Dtos.Users;
+﻿using Asp.Versioning;
+using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Identity.Api.Controllers.V1
+namespace Identity.Api.Controllers
 {
     /// <summary>
     /// Authorization Controller constructor.
     /// </summary>
     /// <param name="authSerivce">The authService.</param>
-    public class AuthController(IAuthService authSerivce) : BaseV1Controller
+    [ApiVersion("1.0")]
+    [Route("api/v{version:ApiVersion}/[controller]")]
+    public class AuthController(IAuthService authSerivce) : BaseController
     {
         /// <summary>
         /// Login.
