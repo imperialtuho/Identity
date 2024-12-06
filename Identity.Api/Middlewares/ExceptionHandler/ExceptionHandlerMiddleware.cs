@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Newtonsoft.Json;
-using System.Net;
 using System.Security.Authentication;
 
 namespace Identity.Api.Middlewares.ExceptionHandler

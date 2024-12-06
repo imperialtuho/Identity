@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using Identity.Application.Dtos.Users;
+﻿using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

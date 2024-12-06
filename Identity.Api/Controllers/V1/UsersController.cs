@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using Identity.Application.Dtos;
+﻿using Identity.Application.Dtos;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Services;
 using Identity.Domain.Extensions;

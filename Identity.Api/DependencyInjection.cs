@@ -1,7 +1,5 @@
 ﻿using Asp.Versioning;
-using Identity.Api.Extensions;
 using Identity.Domain.Constants;
-using Microsoft.OpenApi.Models;
 
 namespace Identity.Api
 {
