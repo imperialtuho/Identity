@@ -1,26 +1,31 @@
+using Identity.Api.Extensions;
 using Identity.Api.Helpers;
-using Identity.Api.Middlewares.Authentication;
 using Identity.Api.Middlewares.ExceptionHandler;
 using Identity.Application;
 using Identity.Application.Configurations.Settings;
 using Identity.Domain.Constants;
 using Identity.Infrastructure;
+using Identity.Infrastructure.Database;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 
 namespace Identity.Api
 {
     public class Program
     {
+        private static SwaggerSettings Swagger;
+
         protected Program()
         { }
 
         protected static async Task Main(string[] args)
         {
-            var _environmentName = ApplicationConstants.EnvironmentName;
+            var environmentName = ApplicationConstants.EnvironmentName;
 
             var builder = WebApplication.CreateBuilder(args);
 
-            _environmentName = Environment.GetEnvironmentVariable(ApplicationConstants.AspNetCoreEnvironment) ?? ApplicationConstants.DefaultEnvironmentName;
+            environmentName = Environment.GetEnvironmentVariable(ApplicationConstants.AspNetCoreEnvironment) ?? ApplicationConstants.DefaultEnvironmentName;
 
             // Create a logger
             using var loggerFactory = LoggerFactory.Create(builder =>
@@ -28,56 +33,134 @@ namespace Identity.Api
                 builder.AddConsole();
             });
 
-            var logger = loggerFactory.CreateLogger<Program>();
-
-            string information = "Environment name: {0}";
-            logger.LogInformation(message: information, args: _environmentName);
+            loggerFactory.CreateLogger<Program>().LogInformation("Environment name: {EnvironmentName}", environmentName);
 
             builder.Configuration
                 .SetBasePath(builder.Environment.ContentRootPath)
-                .AddEnvironmentVariables();
+                .AddEnvironmentVariables()
+                .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true);
 
-            // Add services to the container.
+            Swagger = builder.Configuration.GetSection(nameof(SwaggerSettings)).Get<SwaggerSettings>()
+                    ?? throw new ArgumentException($"{nameof(SwaggerSettings)} is missing in appsettings!");
 
-            builder.Services.AddInfrastructureServices(builder.Configuration);
-            builder.Services.AddApplicationServices(builder.Configuration);
-            builder.Services.AddJwtServices(builder.Configuration);
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            // Register services
+            ConfigureServices(builder.Services, builder.Configuration);
 
             var app = builder.Build();
 
-            var appSettings = app.Services.GetRequiredService<IOptions<ApplicationSettings>>().Value;
-
-            // Configure Swagger.
-            if (!appSettings.IsProductionMode)
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            if (!ExceptionHandlerMiddleware.IsProductionEnvironment(builder.Environment, _environmentName))
-            {
-                app.UseDeveloperExceptionPage();
-                app.UseExceptionHandler(ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(true, logger));
-            }
-            else
-            {
-                app.UseExceptionHandler(ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(false, logger));
-                app.UseHsts();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-
-            app.MapControllers();
+            // Configure middleware and request pipeline
+            ConfigureMiddleware(app, environmentName);
 
             await DatabaseHelper.SeedAsync(app);
 
             await app.RunAsync();
+        }
+
+        private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+        {
+            // Register custom services
+            services.AddInfrastructureServices(configuration);
+            services.AddApplicationServices(configuration);
+            services.AddApiServices(configuration);
+
+            // Register DbContext
+            services.AddDbContext<ApplicationDbContext>(options =>
+            {
+                string? assemblyName = typeof(Program).Assembly.GetName().Name;
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly(assemblyName));
+            });
+
+            // Add Controllers and Swagger
+            services.AddControllers();
+            services.AddEndpointsApiExplorer();
+
+            // Adds Swagger
+            services.AddSwaggerGen(options =>
+            {
+                options.MapType<DateOnly>(() => new OpenApiSchema
+                {
+                    Type = "string",
+                    Format = "date"
+                });
+
+                // Apply document filter by exposed or add prefix
+                options.DocumentFilter<PathPrefixInsertDocumentFilter>(Swagger.PrefixPath, Swagger.IsExposed);
+
+                // Sepcify our operation filter here
+                options.OperationFilter<AddCommonParameterOperationFilter>();
+
+                options.SwaggerDoc(Swagger.Version, new OpenApiInfo
+                {
+                    Title = Swagger.Title,
+                    Version = Swagger.Version,
+                    Description = Swagger.Description
+                });
+
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Name = "Authorization",
+                    Description = "Bearer Authentication with JWT Token",
+                    Type = SecuritySchemeType.Http
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Id = "Bearer",
+                                Type = ReferenceType.SecurityScheme
+                            }
+                        },
+                        new List<string>()
+                    }
+                });
+            });
+        }
+
+        private static void ConfigureMiddleware(WebApplication app, string environmentName)
+        {
+            var appSettings = app.Services.GetRequiredService<IOptions<ApplicationSettings>>().Value;
+
+            if (!appSettings.IsProductionMode)
+            {
+                app.UseSwagger();
+
+                app.UseSwaggerUI(options =>
+                {
+                    options.SwaggerEndpoint($"swagger/{Swagger.Version}/swagger.json", Swagger.Title);
+                    options.RoutePrefix = string.Empty;
+                });
+            }
+
+            // Configure error handling
+            if (!ExceptionHandlerMiddleware.IsProductionEnvironment(app.Environment, environmentName))
+            {
+                app.UseDeveloperExceptionPage();
+                app.UseExceptionHandler(ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(true, app.Logger));
+            }
+            else
+            {
+                app.UseExceptionHandler(ExceptionHandlerMiddleware.CustomExceptionHandlerMiddleware(false, app.Logger));
+                app.UseHsts();
+            }
+
+            // Configure HTTPS redirection and security middleware
+            app.UseHttpsRedirection();
+
+            // Configure routing
+            app.UseRouting();
+
+            // Authentication and Authorization
+            app.UseAuthorization();
+
+            // Map routes
+            app.MapControllers();
         }
     }
 }

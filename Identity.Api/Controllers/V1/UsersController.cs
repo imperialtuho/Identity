@@ -1,16 +1,17 @@
-﻿using Identity.Application.Dtos;
+﻿using Asp.Versioning;
+using Identity.Application.Dtos;
 using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Services;
 using Identity.Domain.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Identity.Api.Controllers
+namespace Identity.Api.Controllers.V1
 {
     /// <summary>
     /// Users Controller constructor.
     /// </summary>
-    public class UsersController(IUserService userService) : BaseController
+    public class UsersController(IUserService userService) : BaseV1Controller
     {
         /// <summary>
         /// Deletes user by id.

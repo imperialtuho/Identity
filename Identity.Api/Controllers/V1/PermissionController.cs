@@ -3,14 +3,33 @@ using Identity.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Identity.Api.Controllers
+namespace Identity.Api.Controllers.V1
 {
     /// <summary>
     /// The permission controller.
     /// </summary>
     [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
-    public class PermissionController(IPermissionService permissionService) : BaseController
+    public class PermissionController(IPermissionService permissionService) : BaseV1Controller
     {
+        [HttpPost]
+        [Authorize(Roles = $"{SuperAdmin}", Policy = $"{ApplicationPolicies.Super}")]
+        public async Task<IActionResult> AddAsync(PermissionAddRequest request)
+        {
+            return Result(await permissionService.AddAsync(request), HttpStatusCode.Created);
+        }
+
+        /// <summary>
+        /// Deletes permission by id.
+        /// </summary>
+        /// <param name="id">The id.</param>
+        /// <returns>True/False based on delete action.</returns>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = $"{SuperAdmin}")]
+        public async Task<IActionResult> DeleteByIdAsync(string id)
+        {
+            return Result(await permissionService.DeleteByIdAsync(id), HttpStatusCode.OK);
+        }
+
         /// <summary>
         /// Gets permission by id.
         /// </summary>
@@ -33,25 +52,16 @@ namespace Identity.Api.Controllers
             return Result(await permissionService.GetByRoleIdAsync(id));
         }
 
-        [HttpPost]
-        [Authorize(Roles = $"{SuperAdmin}", Policy = $"{ApplicationPolicies.Super}")]
-        public async Task<IActionResult> AddAsync(PermissionAddRequest request)
-        {
-            return Result(await permissionService.AddAsync(request), HttpStatusCode.Created);
-        }
-
+        /// <summary>
+        /// Updates Permission async.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns>Return updated permission.</returns>
         [HttpPut]
         [Authorize(Roles = $"{SuperAdmin}", Policy = $"{ApplicationPolicies.Super}")]
         public async Task<IActionResult> UpdateAsync(PermissionUpdateRequest request)
         {
             return Result(await permissionService.UpdateAsync(request), HttpStatusCode.OK);
-        }
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = $"{SuperAdmin}")]
-        public async Task<IActionResult> DeleteByIdAsync(string id)
-        {
-            return Result(await permissionService.DeleteByIdAsync(id), HttpStatusCode.OK);
         }
     }
 }

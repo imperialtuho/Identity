@@ -7,12 +7,14 @@ using Identity.Infrastructure.Configurations;
 using Identity.Infrastructure.Database;
 using Identity.Infrastructure.Repositories.Providers.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Principal;
 using System.Text;
 
 namespace Identity.Infrastructure
@@ -28,10 +30,18 @@ namespace Identity.Infrastructure
         /// <exception cref="InvalidOperationException"></exception>
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<ApplicationDbContext>(options =>
+            services.AddHttpClient();
+            services.AddHttpContextAccessor();
+            services.AddTransient<IPrincipal>(provider => provider.GetService<IHttpContextAccessor>()!.HttpContext!.User);
+            services.AddResponseCompression(options =>
             {
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("Identity.Api"));
+                options.EnableForHttps = true;
+                options.Providers.Add<BrotliCompressionProvider>();
+                options.Providers.Add<GzipCompressionProvider>();
             });
+
+            // Memory cache.
+            services.AddMemoryCache();
 
             var jwtSettings = configuration.GetSection(nameof(JwtSettings)).Get<JwtSettings>() ?? throw new InvalidDataException($"{nameof(JwtSettings)} are not setup!");
 

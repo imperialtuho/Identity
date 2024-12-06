@@ -1,17 +1,18 @@
-﻿using Identity.Application.Configurations.Settings;
+﻿using Asp.Versioning;
+using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos;
 using Identity.Domain.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace Identity.Api.Controllers
+namespace Identity.Api.Controllers.V1
 {
     /// <summary>
     /// The SettingsController constructor.
     /// </summary>
     /// <param name="jwtSettings">The jwtSettings.</param>
-    public class SettingsController(IOptions<JwtSettings> jwtSettings) : BaseController
+    public class SettingsController(IOptions<JwtSettings> jwtSettings) : BaseV1Controller
     {
         /// <summary>
         /// Get JWT settings for API consumer.

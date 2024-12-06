@@ -1,15 +1,16 @@
-﻿using Identity.Application.Dtos.Users;
+﻿using Asp.Versioning;
+using Identity.Application.Dtos.Users;
 using Identity.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Identity.Api.Controllers
+namespace Identity.Api.Controllers.V1
 {
     /// <summary>
     /// The UserRolesController constructor.
     /// </summary>
     /// <param name="authService">The authService.</param>
-    public class UserRolesController(IAuthService authService) : BaseController
+    public class UserRolesController(IAuthService authService) : BaseV1Controller
     {
         /// <summary>
         /// Adds roles.
