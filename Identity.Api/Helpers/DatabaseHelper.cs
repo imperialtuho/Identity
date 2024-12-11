@@ -30,10 +30,8 @@ namespace Identity.Api.Helpers
             var permissions = new List<Permission>
             {
                 new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Super, Description = "All permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Create, Description = "Create permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
                 new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Read, Description = "Read permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Update, Description = "Update permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Delete, Description = "Delete permission", CreatedDate = currentDate, CreatedBy = SuperAdmin }
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Write, Description = "Write permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
             };
 
             foreach (Permission permission in permissions)

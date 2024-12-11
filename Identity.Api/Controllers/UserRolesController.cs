@@ -9,6 +9,8 @@ namespace Identity.Api.Controllers
     /// The UserRolesController constructor.
     /// </summary>
     /// <param name="authService">The authService.</param>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:ApiVersion}/[controller]")]
     public class UserRolesController(IAuthService authService) : BaseController
     {
         /// <summary>
@@ -18,7 +20,7 @@ namespace Identity.Api.Controllers
         /// <param name="request">The request.</param>
         /// <returns>System.Task{IActionResult}.</returns>
         [HttpPost("{userId}/roles")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{ApplicationPolicies.Super}, {ApplicationPolicies.Create}, {ApplicationPolicies.Update}")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{ApplicationPolicies.Super}, {ApplicationPolicies.Read}, {ApplicationPolicies.Write}")]
         public async Task<IActionResult> AddRoleToUserAsync([FromRoute] string userId, [FromBody] RoleDto request)
         {
             if (string.IsNullOrEmpty(userId))

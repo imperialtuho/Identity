@@ -7,10 +7,9 @@ using Identity.Infrastructure.Configurations;
 using Identity.Infrastructure.Database;
 using Identity.Infrastructure.Repositories.Providers.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -33,11 +32,11 @@ namespace Identity.Infrastructure
             services.AddHttpClient();
             services.AddHttpContextAccessor();
             services.AddTransient<IPrincipal>(provider => provider.GetService<IHttpContextAccessor>()!.HttpContext!.User);
-            services.AddResponseCompression(options =>
+
+            // Register DbContext
+            services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.EnableForHttps = true;
-                options.Providers.Add<BrotliCompressionProvider>();
-                options.Providers.Add<GzipCompressionProvider>();
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
             });
 
             // Memory cache.
@@ -106,9 +105,9 @@ namespace Identity.Infrastructure
             string claimType = nameof(Permission);
 
             services.AddAuthorizationBuilder()
-                .AddPolicy(nameof(ApplicationPolicies.Create), policy =>
+                .AddPolicy(nameof(ApplicationPolicies.Read), policy =>
                 {
-                    policy.RequireClaim(claimType, ApplicationPolicies.Create);
+                    policy.RequireClaim(claimType, ApplicationPolicies.Read);
                     policy.RequireRole($"{roles}");
                 })
                 .AddPolicy(nameof(ApplicationPolicies.Read), policy =>

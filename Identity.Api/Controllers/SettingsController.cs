@@ -11,6 +11,8 @@ namespace Identity.Api.Controllers
     /// The SettingsController constructor.
     /// </summary>
     /// <param name="jwtSettings">The jwtSettings.</param>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:ApiVersion}/[controller]")]
     public class SettingsController(IOptions<JwtSettings> jwtSettings) : BaseController
     {
         /// <summary>

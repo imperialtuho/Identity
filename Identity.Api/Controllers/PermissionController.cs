@@ -8,7 +8,8 @@ namespace Identity.Api.Controllers
     /// <summary>
     /// The permission controller.
     /// </summary>
-    [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:ApiVersion}/[controller]")]
     public class PermissionController(IPermissionService permissionService) : BaseController
     {
         [HttpPost]
@@ -24,7 +25,7 @@ namespace Identity.Api.Controllers
         /// <param name="id">The id.</param>
         /// <returns>True/False based on delete action.</returns>
         [HttpDelete("{id}")]
-        [Authorize(Roles = $"{SuperAdmin}")]
+        [Authorize(Roles = $"{SuperAdmin}", Policy = $"{ApplicationPolicies.Super}")]
         public async Task<IActionResult> DeleteByIdAsync(string id)
         {
             return Result(await permissionService.DeleteByIdAsync(id), HttpStatusCode.OK);
@@ -58,7 +59,7 @@ namespace Identity.Api.Controllers
         /// <param name="request">The request.</param>
         /// <returns>Return updated permission.</returns>
         [HttpPut]
-        [Authorize(Roles = $"{SuperAdmin}", Policy = $"{ApplicationPolicies.Super}")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{ApplicationPolicies.Super}, {ApplicationPolicies.Write}")]
         public async Task<IActionResult> UpdateAsync(PermissionUpdateRequest request)
         {
             return Result(await permissionService.UpdateAsync(request), HttpStatusCode.OK);

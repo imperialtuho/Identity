@@ -5,8 +5,6 @@ using Identity.Application;
 using Identity.Application.Configurations.Settings;
 using Identity.Domain.Constants;
 using Identity.Infrastructure;
-using Identity.Infrastructure.Database;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
@@ -62,13 +60,6 @@ namespace Identity.Api
             services.AddInfrastructureServices(configuration);
             services.AddApplicationServices(configuration);
             services.AddApiServices(configuration);
-
-            // Register DbContext
-            services.AddDbContext<ApplicationDbContext>(options =>
-            {
-                string? assemblyName = typeof(Program).Assembly.GetName().Name;
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly(assemblyName));
-            });
 
             // Add Controllers and Swagger
             services.AddControllers();
