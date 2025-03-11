@@ -115,14 +115,9 @@ namespace Identity.Infrastructure
                     policy.RequireClaim(claimType, ApplicationPolicies.Read);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy(nameof(ApplicationPolicies.Update), policy =>
+                .AddPolicy(nameof(ApplicationPolicies.Write), policy =>
                 {
-                    policy.RequireClaim(claimType, ApplicationPolicies.Update);
-                    policy.RequireRole($"{roles}");
-                })
-                .AddPolicy(nameof(ApplicationPolicies.Delete), policy =>
-                {
-                    policy.RequireClaim(claimType, ApplicationPolicies.Delete);
+                    policy.RequireClaim(claimType, ApplicationPolicies.Write);
                     policy.RequireRole($"{roles}");
                 })
                 .AddPolicy(nameof(ApplicationPolicies.Super), policy =>
