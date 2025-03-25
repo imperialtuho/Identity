@@ -20,7 +20,7 @@ namespace Identity.Api.Middlewares.ExceptionHandler
                     ErrorCode = HttpStatusCode.InternalServerError,
                     Message = specificException.Message,
                     InnerExceptionMessage = specificException.InnerException?.Message,
-                    Path = exceptionHandlerPathFeature.Path,
+                    Path = isDevelopment ? exceptionHandlerPathFeature.Path : string.Empty,
                     StackTrace = isDevelopment ? specificException.StackTrace : string.Empty,
                 };
 

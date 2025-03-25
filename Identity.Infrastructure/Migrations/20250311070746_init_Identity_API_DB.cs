@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Identity.Api.Migrations
+namespace Identity.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitDabatase : Migration
+    public partial class init_Identity_API_DB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
