@@ -5,12 +5,15 @@ using Identity.Infrastructure.Configurations.Repositories;
 using Identity.Infrastructure.Database;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Identity.Infrastructure.Repositories.Providers.Identity
 {
     public class PermissionRepository : DbSqlConnectionEFRepositoryBase<ApplicationDbContext, Permission>, IPermissionRepository
     {
-        public PermissionRepository(ISqlConnectionFactory sqlConnectionFactory, IHttpContextAccessor httpContextAccessor) : base(sqlConnectionFactory, httpContextAccessor)
+        public PermissionRepository(ISqlConnectionFactory sqlConnectionFactory,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<PermissionRepository> logger) : base(sqlConnectionFactory, httpContextAccessor, logger)
         {
         }
 

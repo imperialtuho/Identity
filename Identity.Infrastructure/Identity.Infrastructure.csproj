@@ -10,8 +10,4 @@
     <ProjectReference Include="..\Identity.Application\Identity.Application.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Repositories\Providers\Setting\" />
-  </ItemGroup>
-
 </Project>

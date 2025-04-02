@@ -3,30 +3,66 @@ using System.Security.Claims;
 
 namespace Identity.Domain.Extensions
 {
+    /// <summary>
+    /// Provides extension methods for the <see cref="ClaimsPrincipal"/> class to retrieve user session details.
+    /// This class is responsible for extracting user-specific information (such as user ID, email, roles, permissions, and tenant ID)
+    /// from the claims associated with an authenticated user. The extensions are useful for managing authorization, user context, and tenant-specific data.
+    /// </summary>
     public static class ClaimsPrincipalExtension
     {
+        private const string Permission = nameof(Permission); // Constant for permission claim type
+        private const string TenantIdClaim = "tenantId"; // Constant for tenant ID claim type
+
+        /// <summary>
+        /// Retrieves user session details from the <see cref="ClaimsPrincipal"/> object.
+        /// This includes the user's email, user ID, roles, permissions, and tenant ID.
+        /// The method ensures the user session is populated even when some claims might be missing,
+        /// returning a default session if essential claims (such as user ID) are not found.
+        /// </summary>
+        /// <param name="claimsPrincipal">The <see cref="ClaimsPrincipal"/> representing the authenticated user.</param>
+        /// <returns>A <see cref="UserSession"/> object containing user-specific details like email, user ID, roles, permissions, and tenant ID.</returns>
+        /// <remarks>
+        /// If the <paramref name="claimsPrincipal"/> is null or lacks required claims (such as user ID),
+        /// the method will return a default <see cref="UserSession"/> object.
+        /// </remarks>
         public static UserSession GetUserSession(this ClaimsPrincipal claimsPrincipal)
         {
-            string? userEmail = claimsPrincipal?.FindFirst(ClaimTypes.Email)?.Value;
-            string? userStringId = claimsPrincipal?.FindFirst(ClaimTypes.Sid)?.Value;
-            string? tenantId = claimsPrincipal?.FindFirst("tenantId")?.Value ?? "0";
-            var userSession = new UserSession();
+            // Return an empty UserSession if claimsPrincipal is null
+            if (claimsPrincipal == null) return new UserSession();
 
-            if (string.IsNullOrWhiteSpace(userStringId))
+            // Retrieve the user's email and user ID from the claims
+            string? userEmail = claimsPrincipal.FindFirstValue(ClaimTypes.Name);
+            string? userId = claimsPrincipal.FindFirstValue(ClaimTypes.Sid);
+
+            // Retrieve tenant ID from claims (default to "0" if not present)
+            string? tenantIdStr = claimsPrincipal.FindFirstValue(TenantIdClaim) ?? "0";
+
+            // Return an empty session if user ID is missing
+            if (string.IsNullOrWhiteSpace(userId))
             {
-                return userSession;
+                return new UserSession();
             }
 
-            List<string>? roles = claimsPrincipal!.Claims.Where(c => c.Type.Equals(ClaimTypes.Role)).Select(c => c.Value).ToList();
+            // Parse tenant ID string to integer
+            int tenantId = int.TryParse(tenantIdStr, out int parsedTenantId) ? parsedTenantId : 0;
 
-            var result = Guid.TryParse(userStringId, out Guid userId);
+            // Retrieve roles and permissions
+            List<string> roles = claimsPrincipal.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+            List<string> permissions = claimsPrincipal.FindAll(Permission).Select(c => c.Value).ToList();
 
-            return !result ? userSession : new UserSession()
+            if (!Guid.TryParse(userId, out Guid userIdGuid))
+            {
+                return new UserSession();
+            }
+
+            // Return a populated UserSession object
+            return new UserSession
             {
                 Email = userEmail,
-                UserId = userId,
+                UserId = userIdGuid,
                 Roles = roles,
-                TenantId = int.Parse(tenantId)
+                Permissions = permissions,
+                TenantId = tenantId
             };
         }
     }

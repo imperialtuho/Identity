@@ -1,5 +1,4 @@
 ﻿using Identity.Application.Configurations.Settings;
-using Identity.Application.Dtos;
 using Identity.Domain.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.Memory;
@@ -15,14 +14,18 @@ using System.Text.Json;
 namespace Identity.Api.Middlewares.Authentication
 {
     /// <summary>
-    /// The AuthenticationMiddlewareHandler constructor.
+    /// Initializes a new instance of the <see cref="AuthenticationMiddlewareHandler"/> class, responsible for handling JWT authentication.
     /// </summary>
-    /// <param name="options">The options.</param>
-    /// <param name="applicationSettings">The applicationSettings.</param>
-    /// <param name="logger">The logger.</param>
-    /// <param name="encoder">The encoder.</param>
-    /// <param name="cache">The cache.</param>
-    /// <param name="httpClientFactory">The httpClientFactory.</param>
+    /// <param name="options">Provides access to authentication options monitored for changes.</param>
+    /// <param name="applicationSettings">Contains application-wide settings, including authentication configurations.</param>
+    /// <param name="logger">Factory for creating loggers to record authentication events.</param>
+    /// <param name="encoder">Encoder used for handling URL encoding in authentication operations.</param>
+    /// <param name="cache">Memory cache used for storing authentication-related data, such as JWT settings.</param>
+    /// <param name="httpClientFactory">Factory for creating HTTP clients to communicate with external authentication services.</param>
+    /// <remarks>
+    /// This constructor initializes dependencies required for JWT validation, including configuration management,
+    /// logging, caching, and external service communication.
+    /// </remarks>
     public class AuthenticationMiddlewareHandler(
         IOptionsMonitor<AuthenticationMiddlewareOptions> options,
         IOptions<ApplicationSettings> applicationSettings,
@@ -32,33 +35,55 @@ namespace Identity.Api.Middlewares.Authentication
         IHttpClientFactory httpClientFactory) : AuthenticationHandler<AuthenticationMiddlewareOptions>(options, logger, encoder)
     {
         /// <summary>
-        /// The logger.
+        /// Logger instance for recording authentication-related events and errors.
         /// </summary>
+        /// <remarks>
+        /// This logger is used throughout the middleware to capture validation errors, token processing issues,
+        /// and interactions with external authentication services.
+        /// </remarks>
         private readonly ILogger _logger = logger.CreateLogger<AuthenticationMiddlewareHandler>();
 
         /// <summary>
-        /// The IdentityUrl.
+        /// The base URL of the identity service used for authentication requests.
         /// </summary>
+        /// <remarks>
+        /// This URL is used when fetching authentication-related configurations or validating tokens
+        /// against an external identity provider.
+        /// </remarks>
         public static string? IdentityUrl { get; set; }
 
         /// <summary>
-        /// The cacheKey.
+        /// The cache key used for storing and retrieving JWT settings from memory.
         /// </summary>
+        /// <remarks>
+        /// JWT settings are stored in memory cache to optimize performance and reduce
+        /// the number of requests made to the identity service.
+        /// </remarks>
         private const string CacheKey = nameof(JwtSettings);
 
         /// <summary>
-        /// The Unauthorized string constant.
+        /// Predefined constant for representing an unauthorized access response.
         /// </summary>
+        /// <remarks>
+        /// This value is used to standardize authentication failure messages across the middleware.
+        /// </remarks>
         private const string Unauthorized = nameof(Unauthorized);
 
         /// <summary>
-        /// The Bearer.
+        /// The prefix used to identify Bearer tokens in the Authorization header.
         /// </summary>
+        /// <remarks>
+        /// The authentication middleware extracts and validates tokens prefixed with this keyword.
+        /// </remarks>
         private const string Bearer = nameof(Bearer);
 
         /// <summary>
-        /// Default JsonSerializerOptions.
+        /// Default JSON serialization options used for processing authentication-related data.
         /// </summary>
+        /// <remarks>
+        /// These options ensure case-insensitive property matching and prevent null values from being included
+        /// in serialized responses.
+        /// </remarks>
         private readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true, // Optional: ignore case in property names
@@ -66,9 +91,15 @@ namespace Identity.Api.Middlewares.Authentication
         };
 
         /// <summary>
-        /// Handle Authenticate Async.
+        /// Asynchronously handles authentication for incoming requests by validating the provided JWT token.
         /// </summary>
-        /// <returns>Task{AuthenticateResult}.</returns>
+        /// <returns>
+        /// A task representing the authentication process, returning an <see cref="AuthenticateResult"/> that indicates success or failure.
+        /// </returns>
+        /// <remarks>
+        /// This method extracts the token from the request's Authorization header, validates it, and returns an authentication ticket
+        /// if the token is valid. If authentication fails, an appropriate failure result is returned.
+        /// </remarks>
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             if (!Request.Headers.TryGetValue("Authorization", out Microsoft.Extensions.Primitives.StringValues value))
@@ -107,6 +138,17 @@ namespace Identity.Api.Middlewares.Authentication
             }
         }
 
+        /// <summary>
+        /// Asynchronously validates a provided JWT token and constructs an authentication ticket.
+        /// </summary>
+        /// <param name="token">The JWT token to validate.</param>
+        /// <returns>
+        /// A task representing the validation process, returning an <see cref="AuthenticateResult"/>.
+        /// </returns>
+        /// <remarks>
+        /// This method extracts claims from the token and associates them with an authentication ticket if the token is valid.
+        /// If validation fails, an authentication failure result is returned.
+        /// </remarks>
         private async Task<AuthenticateResult> ValidateTokenAsync(string token)
         {
             if (string.IsNullOrEmpty(token))
@@ -122,6 +164,23 @@ namespace Identity.Api.Middlewares.Authentication
 
             return AuthenticateResult.Success(ticket);
         }
+
+        /// <summary>
+        /// Asynchronously extracts identity information from a JWT token by validating its claims.
+        /// </summary>
+        /// <param name="token">The JWT token to process.</param>
+        /// <param name="isRetry">Indicates whether this is a retry attempt after a failed validation due to expired settings.</param>
+        /// <returns>
+        /// A task representing the operation, returning a <see cref="ClaimsIdentity"/> containing the user's identity details.
+        /// </returns>
+        /// <exception cref="NotFoundException">Thrown if the JWT settings cannot be retrieved.</exception>
+        /// <exception cref="SecurityTokenExpiredException">Thrown if the provided token has expired.</exception>
+        /// <exception cref="UnhandledException">Thrown if an unexpected error occurs during token processing.</exception>
+        /// <remarks>
+        /// This method validates the token against issuer, audience, expiration, and signature key. If the token is valid,
+        /// it extracts claims and returns the associated identity. If the validation fails due to an expired token and retrying
+        /// is allowed, it refreshes the cached JWT settings and attempts validation again.
+        /// </remarks>
 
         private async Task<ClaimsIdentity> GetIdentityFromTokenAsync(string token, bool isRetry = false)
         {
@@ -175,9 +234,16 @@ namespace Identity.Api.Middlewares.Authentication
         }
 
         /// <summary>
-        /// Handle Get JwtSettings From Memorycache.
+        /// Asynchronously retrieves JWT settings from the memory cache or fetches them from the identity service if not cached.
         /// </summary>
-        /// <returns>JwtSettings.</returns>
+        /// <returns>
+        /// A task representing the operation, returning the <see cref="JwtSettings"/> if available; otherwise, null.
+        /// </returns>
+        /// <remarks>
+        /// This method first checks for JWT settings in the in-memory cache. If not found, it makes an HTTP request
+        /// to the identity service to fetch the settings, encrypting the request for security. Once retrieved, the settings
+        /// are cached for future use.
+        /// </remarks>
         public async Task<JwtSettings?> GetJwtSettingsAsync()
         {
             try
@@ -193,12 +259,7 @@ namespace Identity.Api.Middlewares.Authentication
 
                 string password = AesEncryptionHelper.Encrypt(appSettings.Password, appSettings.Password);
 
-                var passwordDto = new PasswordDto()
-                {
-                    Password = password
-                };
-
-                var content = new StringContent(JsonSerializer.Serialize(passwordDto), Encoding.UTF8, "application/json");
+                StringContent? content = new StringContent(JsonSerializer.Serialize(new { Password = password }), Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response = await client.PostAsync($"{IdentityUrl}settings/jwt", content);
 
@@ -209,7 +270,7 @@ namespace Identity.Api.Middlewares.Authentication
 
                     if (jwtSettings != null)
                     {
-                        cache.Set(CacheKey, jwtSettings, TimeSpan.FromDays(1));
+                        cache.Set(CacheKey, jwtSettings, TimeSpan.FromDays(365));
 
                         return jwtSettings;
                     }
@@ -226,9 +287,12 @@ namespace Identity.Api.Middlewares.Authentication
         }
 
         /// <summary>
-        /// Handle Remove JwtSettings In Memorycache.
+        /// Removes the cached JWT settings from memory to force re-fetching from the identity service.
         /// </summary>
-        /// <returns>Void</returns>
+        /// <remarks>
+        /// This method is typically called when an authentication failure occurs due to outdated JWT settings.
+        /// It ensures that subsequent authentication requests retrieve fresh settings from the identity service.
+        /// </remarks>
         public void RemoveJwtSettingsCache()
         {
             cache.Remove(CacheKey);

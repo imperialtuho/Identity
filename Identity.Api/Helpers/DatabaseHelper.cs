@@ -7,10 +7,26 @@ using System.Security.Claims;
 namespace Identity.Api.Helpers
 {
     /// <summary>
-    /// Database helper which will help seeding default data right after starting up the program.
+    /// Provides methods to seed default database data during application startup.
     /// </summary>
+    /// <remarks>
+    /// This class is responsible for initializing database records such as permissions, roles, and users.
+    /// It ensures that essential data is available when the application starts, including predefined roles
+    /// with their corresponding permissions and default admin users.
+    /// </remarks>
     public static class DatabaseHelper
     {
+        /// <summary>
+        /// Seeds the database with default roles, permissions, and users.
+        /// </summary>
+        /// <param name="applicationBuilder">The application builder instance used to create a service scope.</param>
+        /// <returns>A task representing the asynchronous seeding operation.</returns>
+        /// <remarks>
+        /// This method initializes the database with predefined roles and their associated permissions.
+        /// If roles or permissions do not exist, they are created and linked accordingly.
+        /// Additionally, it ensures that default admin users are created and assigned the appropriate roles
+        /// and claims to grant them access rights.
+        /// </remarks>
         public static async Task SeedAsync(IApplicationBuilder applicationBuilder)
         {
             using IServiceScope serviceScope = applicationBuilder.ApplicationServices.CreateScope();

@@ -27,10 +27,10 @@ namespace Identity.Application.Services
                 throw new ArgumentException("Please provide a valid id.");
             }
 
-            Permission currentPermission = await permissionRepository.GetEntityByIdAsync(permissionId)
+            Permission currentPermission = await permissionRepository.GetByIdAsync(permissionId)
                 ?? throw new NotFoundException($"{nameof(Permission)} with provided id: {permissionId} is not found.");
 
-            return await permissionRepository.DeleteAndSaveChangesAsync(currentPermission);
+            return await permissionRepository.ForceDeleteAsync(currentPermission);
         }
 
         public async Task<PermissionResponse> GetByIdAsync(string id)
@@ -42,7 +42,7 @@ namespace Identity.Application.Services
                 throw new ArgumentException("Please provide a valid id.");
             }
 
-            Permission result = await permissionRepository.GetEntityByIdAsync(permissionId);
+            Permission result = await permissionRepository.GetByIdAsync(permissionId);
 
             return result.Adapt<PermissionResponse>();
         }
@@ -58,7 +58,7 @@ namespace Identity.Application.Services
 
         public async Task<PermissionResponse> UpdateAsync(PermissionUpdateRequest request)
         {
-            Permission currentPermission = await permissionRepository.GetEntityByIdAsync(request.Id)
+            Permission currentPermission = await permissionRepository.GetByIdAsync(request.Id)
                                         ?? throw new NotFoundException($"{nameof(Permission)} with provided id: {request.Id} is not found.");
 
             currentPermission = request.Adapt(currentPermission);

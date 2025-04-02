@@ -6,6 +6,7 @@ using Identity.Domain.Entities;
 using Identity.Infrastructure.Configurations.Repositories;
 using Identity.Infrastructure.Database;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -24,7 +25,8 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
         public JwtTokenRepository(IOptions<JwtSettings> options,
             ISqlConnectionFactory sqlConnectionFactory,
             IHttpContextAccessor httpContextAccessor,
-            IRefreshTokenRepository refreshTokenRepository) : base(sqlConnectionFactory, httpContextAccessor)
+            IRefreshTokenRepository refreshTokenRepository,
+            ILogger<JwtTokenRepository> logger) : base(sqlConnectionFactory, httpContextAccessor, logger)
         {
             _jwtSettings = options.Value;
             _refreshTokenRepository = refreshTokenRepository;

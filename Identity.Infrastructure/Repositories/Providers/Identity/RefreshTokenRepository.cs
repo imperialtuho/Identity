@@ -5,12 +5,15 @@ using Identity.Infrastructure.Configurations.Repositories;
 using Identity.Infrastructure.Database;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Identity.Infrastructure.Repositories.Providers.Identity
 {
     public class RefreshTokenRepository : DbSqlConnectionEFRepositoryBase<ApplicationDbContext, RefreshToken>, IRefreshTokenRepository
     {
-        public RefreshTokenRepository(ISqlConnectionFactory sqlConnectionFactory, IHttpContextAccessor httpContextAccessor) : base(sqlConnectionFactory, httpContextAccessor)
+        public RefreshTokenRepository(ISqlConnectionFactory sqlConnectionFactory,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<RefreshTokenRepository> logger) : base(sqlConnectionFactory, httpContextAccessor, logger)
         {
         }
 

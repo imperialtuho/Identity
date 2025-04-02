@@ -29,7 +29,7 @@ namespace Identity.Infrastructure.Configurations
             {
                 switch (_connectionStringType)
                 {
-                    case ConnectionStringType.PostgresqlConnection:
+                    case ConnectionStringType.PostgreSqlConnection:
                         _connection = new NpgsqlConnection(_configuration.GetConnectionString("PostgresqlConnection"));
                         break;
 
@@ -60,7 +60,7 @@ namespace Identity.Infrastructure.Configurations
         {
             switch (_connectionStringType)
             {
-                case ConnectionStringType.PostgresqlConnection:
+                case ConnectionStringType.PostgreSqlConnection:
                     return new NpgsqlConnection(_configuration.GetConnectionString("PostgresqlConnection"));
 
                 case ConnectionStringType.SqlServerConnection:
@@ -88,8 +88,8 @@ namespace Identity.Infrastructure.Configurations
                 case ConnectionStringType.SqlServerConnection:
                     return (_configuration.GetConnectionString("SqlServerConnection"), ConnectionStringType.SqlServerConnection);
 
-                case ConnectionStringType.PostgresqlConnection:
-                    return (_configuration.GetConnectionString("PostgresqlConnection"), ConnectionStringType.PostgresqlConnection);
+                case ConnectionStringType.PostgreSqlConnection:
+                    return (_configuration.GetConnectionString("PostgresqlConnection"), ConnectionStringType.PostgreSqlConnection);
 
                 case ConnectionStringType.None:
                     return (string.Empty, ConnectionStringType.None);
