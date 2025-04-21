@@ -9,18 +9,21 @@ namespace Identity.Api.Controllers
     public class RolesController(IRoleService roleService) : BaseController
     {
         [HttpPost]
+        [Authorize(Roles = $"{SuperAdmin}")]
         public async Task<IActionResult> AddAsync([FromBody] string name)
         {
             return Result(await roleService.AddAsync(name), HttpStatusCode.Created);
         }
 
         [HttpPost("{id}/assign-permissions")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
         public async Task<IActionResult> AssignPermissionsAsync(Guid id, IList<Guid> permissionIds)
         {
             return Result(await roleService.AssignPermissionsAsync(id, permissionIds), HttpStatusCode.OK);
         }
 
         [HttpPost("{id}/unassign-permissions")]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
         public async Task<IActionResult> UnAssignPermissionsAsync(Guid id, IList<Guid> permissionIds)
         {
             return Result(await roleService.UnAssignPermissionsAsync(id, permissionIds), HttpStatusCode.OK);
