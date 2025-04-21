@@ -6,15 +6,15 @@ namespace Identity.Application.Interfaces.Services
 {
     public interface IUserService
     {
-        Task<bool> DeleteByIdAsync(string id, bool isSoftDelete = true);
+        Task<bool> DeleteByIdAsync(Guid id, bool isSoftDelete = true);
 
         Task<IList<UserDto>> GetAllAsync();
 
         Task<UserDto> GetByEmailAsync(string email);
 
-        Task<UserDto> GetByIdAsync(string id);
+        Task<UserDto> GetByIdAsync(Guid id);
 
-        Task<IList<UserDto>> GetByIdsAsync(IList<string> ids);
+        Task<IList<UserDto>> GetByIdsAsync(IList<Guid> ids);
 
         Task<bool> ResendVerificationEmail(string email);
 
@@ -22,9 +22,9 @@ namespace Identity.Application.Interfaces.Services
 
         Task<bool> SendResetPasswordEmailAsync(string email);
 
-        Task<UserDto> UpdateAsync(string userId, UpdateUserRequest request);
+        Task<UserDto> UpdateAsync(Guid userId, UpdateUserRequest request);
 
-        Task<bool> UpdatePasswordAsync(string id, string newPassword);
+        Task<bool> UpdatePasswordAsync(Guid id, string newPassword);
 
         Task<PaginatedResponse<UserDto>> SearchAsync(SearchRequest request, bool isIncludeDeletedUser = false);
     }

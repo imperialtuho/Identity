@@ -110,25 +110,24 @@ namespace Identity.Infrastructure
                     policy.RequireClaim(claimType, ApplicationPolicies.Read);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy(nameof(ApplicationPolicies.Read), policy =>
-                {
-                    policy.RequireClaim(claimType, ApplicationPolicies.Read);
-                    policy.RequireRole($"{roles}");
-                })
                 .AddPolicy(nameof(ApplicationPolicies.Write), policy =>
                 {
                     policy.RequireClaim(claimType, ApplicationPolicies.Write);
                     policy.RequireRole($"{roles}");
                 })
-                .AddPolicy(nameof(ApplicationPolicies.Super), policy =>
+                .AddPolicy(nameof(ApplicationPolicies.Full), policy =>
                 {
-                    policy.RequireClaim(claimType, ApplicationPolicies.Super);
+                    policy.RequireClaim(claimType, ApplicationPolicies.Full, ApplicationPolicies.Read, ApplicationPolicies.Write);
                     policy.RequireRole(ApplicationDefaultRoleValue.SuperAdmin);
+                })
+                .AddPolicy(nameof(ApplicationPolicies.Special), policy =>
+                {
+                    policy.RequireClaim(claimType, ApplicationPolicies.Special);
+                    policy.RequireRole(ApplicationDefaultRoleValue.SuperAdmin, ApplicationDefaultRoleValue.Admin);
                 });
 
             // Adds Repositories.
             services.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
-            services.AddScoped<ITokenRepository, JwtTokenRepository>();
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             services.AddScoped<IPermissionRepository, PermissionRepository>();
 

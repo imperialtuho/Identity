@@ -84,7 +84,7 @@ namespace Identity.Api.Middlewares.Authentication
         /// These options ensure case-insensitive property matching and prevent null values from being included
         /// in serialized responses.
         /// </remarks>
-        private readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+        private readonly JsonSerializerOptions JsonSerializerOptions = new()
         {
             PropertyNameCaseInsensitive = true, // Optional: ignore case in property names
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull

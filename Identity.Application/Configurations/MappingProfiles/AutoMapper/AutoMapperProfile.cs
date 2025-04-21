@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Identity.Application.Dtos;
+using Identity.Application.Dtos.Permission;
 using Identity.Application.Dtos.Users;
 using Identity.Domain.Entities;
 
@@ -22,8 +23,11 @@ namespace Identity.Application.Configurations.MappingProfiles.AutoMapper
         public AutoMapperProfile()
         {
             CreateMap<UserDto, User>().ReverseMap();
-            CreateMap<Menu, MenuDto>().ReverseMap();
+            CreateMap<MenuDto, Menu>().ReverseMap();
             CreateMap<RegisterDto, UserDto>().ReverseMap();
+            CreateMap<RegisterDto, User>().ReverseMap();
+            CreateMap<PermissionDto, Permission>().ReverseMap();
+            CreateMap<RoleDto, Role>().ReverseMap();
         }
     }
 }

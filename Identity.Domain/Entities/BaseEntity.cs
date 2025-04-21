@@ -7,8 +7,6 @@ namespace Identity.Domain.Entities
         [Key]
         public TId Id { get; set; }
 
-        public int? TenantId { get; set; }
-
         public DateTime? CreatedDate { get; set; }
 
         public string? CreatedBy { get; set; }
@@ -17,7 +15,7 @@ namespace Identity.Domain.Entities
 
         public string? ModifiedBy { get; set; }
 
-        public bool IsActive { get; set; }
+        public int? TenantId { get; set; }
 
         public bool IsDeleted { get; set; }
     }

@@ -1,6 +1,7 @@
 ﻿using Identity.Application.Configurations.Database;
 using Identity.Application.Interfaces.Repositories;
 using Identity.Domain.Entities;
+using Identity.Domain.Exceptions;
 using Identity.Infrastructure.Configurations.Repositories;
 using Identity.Infrastructure.Database;
 using Microsoft.AspNetCore.Http;
@@ -33,9 +34,29 @@ namespace Identity.Infrastructure.Repositories.Providers.Identity
             }
         }
 
-        public void Update(RefreshToken token)
+        public async Task<RefreshToken> CreateAsync(RefreshToken refreshToken)
         {
-            _dbContext.RefreshTokens.Update(token);
+            return await AddWithSaveChangesAndReturnModelAsync(refreshToken);
+        }
+
+        public async Task<bool> DeleteAllUsedToken()
+        {
+            return await ForceDeleteWhereAsync(t => t.Used);
+        }
+
+        public async Task<bool> RevokeAsync(string jti)
+        {
+            RefreshToken? refreshToken = await _dbContext.RefreshTokens.FirstOrDefaultAsync(t => t.JwtId == jti)
+                                        ?? throw new NotFoundException($"Refresh token with jti {jti} not found!.");
+
+            if (refreshToken != null)
+            {
+                refreshToken.Invalidated = true;
+
+                return await UpdateAndSaveChangesAsync(refreshToken);
+            }
+
+            return false;
         }
     }
 }

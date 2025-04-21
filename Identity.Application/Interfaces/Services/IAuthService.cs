@@ -4,17 +4,15 @@ namespace Identity.Application.Interfaces.Services
 {
     public interface IAuthService
     {
-        Task<bool> AddClaimToUserAsync(string email, string claimType, string claimValue);
+        Task<bool> AssignClaimsAsync(Guid userId, string email, IList<ClaimDto> claims);
 
-        Task<bool> AddUserToRolesAsync(string userId, string email, IList<string> roles);
+        Task<bool> AssignRolesAsync(Guid userId, IList<string> roles);
 
-        Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(string userId);
+        Task<bool> UnAssignRolesAsync(Guid userId, IList<string> roles);
 
-        Task<string> Get2FaTokenAsync(string email);
+        Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(Guid userId);
 
         Task<TokenDto> GoogleLogin(ExternalAuthDto externalAuth);
-
-        Task<bool> InvalidateUserTokensAsync(string email);
 
         Task<TokenDto> LoginAsync(string email, string password);
 
@@ -22,14 +20,8 @@ namespace Identity.Application.Interfaces.Services
 
         Task<bool> LoginWith2FaAsync(string email, string password);
 
-        Task<TokenDto> RefreshTokenAsync(TokenDto token);
-
         Task<TokenDto> RegisterAsync(RegisterDto registerModel);
 
         Task<bool> RegisterWithEmailConfirmAsync(RegisterDto registerModel);
-
-        Task<TokenDto> Verify2FaTokenAsync(string email, string token);
-
-        Task<TokenDto> VerifyEmailTokenAsync(string email, string token);
     }
 }

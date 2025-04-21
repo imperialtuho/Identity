@@ -2,7 +2,6 @@
 using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos;
 using Identity.Application.Dtos.Users;
-using Identity.Application.Interfaces.Repositories;
 using Identity.Application.Interfaces.Services;
 using Identity.Application.Services.Base;
 using Identity.Domain.Common;
@@ -17,22 +16,18 @@ using Microsoft.Extensions.Options;
 
 namespace Identity.Application.Services
 {
-    public class UserService : UserAuthBaseService, IUserService
+    public class UserService(UserManager<User> userManager,
+        RoleManager<Role> roleManager,
+        IPasswordHasher<User> passwordHasher,
+        IOptions<ApplicationSettings> applicationSettings,
+        IOptions<JwtSettings> jwtSettings,
+        IMapper mapper,
+        IHttpContextAccessor httpContextAccessor) : UserAuthBaseService(userManager, roleManager, passwordHasher, applicationSettings, jwtSettings, mapper, httpContextAccessor), IUserService
     {
-        public UserService(UserManager<User> userManager,
-            RoleManager<Role> roleManager,
-            IPasswordHasher<User> passwordHasher,
-            ITokenRepository tokenRepository,
-            IRefreshTokenRepository refreshTokenRepository,
-            IOptions<ApplicationSettings> applicationSettings,
-            IMapper mapper,
-            IHttpContextAccessor httpContextAccessor) : base(userManager, roleManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper, httpContextAccessor)
+        public async Task<bool> DeleteByIdAsync(Guid id, bool isSoftDelete = true)
         {
-        }
-
-        public async Task<bool> DeleteByIdAsync(string id, bool isSoftDelete = true)
-        {
-            User? currentUser = await _userManager.FindByIdAsync(id) ?? throw new NotFoundException($"User with {id} not found!");
+            User? currentUser = await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException($"User with {id} not found!");
+            CheckingCurrentPerformingOperation(id, currentUser.TenantId);
 
             if (!isSoftDelete)
             {
@@ -59,16 +54,16 @@ namespace Identity.Application.Services
             return user.Adapt<UserDto>();
         }
 
-        public async Task<UserDto> GetByIdAsync(string id)
+        public async Task<UserDto> GetByIdAsync(Guid id)
         {
-            User? user = await _userManager.FindByIdAsync(id) ?? throw new NotFoundException($"User with {id} not found!");
+            User? user = await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException($"User with {id} not found!");
 
             return user.Adapt<UserDto>();
         }
 
-        public async Task<IList<UserDto>> GetByIdsAsync(IList<string> ids)
+        public async Task<IList<UserDto>> GetByIdsAsync(IList<Guid> ids)
         {
-            IList<User> users = await _userManager.Users.Where(u => ids.Contains(u.Id.ToString())).ToListAsync();
+            IList<User> users = await _userManager.Users.Where(u => ids.Contains(u.Id)).ToListAsync();
 
             return users.Adapt<IList<UserDto>>();
         }
@@ -107,7 +102,7 @@ namespace Identity.Application.Services
         {
             string keyword = request.Keyword ?? string.Empty;
 
-            IQueryable<User> query = _userManager.Users.AsQueryable();
+            IQueryable<User> query = _userManager.Users;
 
             Func<IQueryable<User>, IQueryable<User>>? predicate = null;
 
@@ -137,15 +132,16 @@ namespace Identity.Application.Services
             return false;
         }
 
-        public async Task<UserDto> UpdateAsync(string userId, UpdateUserRequest request)
+        public async Task<UserDto> UpdateAsync(Guid userId, UpdateUserRequest request)
         {
-            User? currentUser = await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException($"User with id: {userId} not found!");
+            User? currentUser = await _userManager.FindByIdAsync(userId.ToString()) ?? throw new NotFoundException($"User with id: {userId} not found!");
+            CheckingCurrentPerformingOperation(userId, currentUser.TenantId);
 
             currentUser = request.Adapt(currentUser);
 
             await ValidateModelAsync(requestModel: currentUser, password: string.Empty, isUpdate: true);
 
-            currentUser.ModifiedBy = !string.IsNullOrEmpty(LoginSession?.Email) ? LoginSession.Email : currentUser.ModifiedBy;
+            currentUser.ModifiedBy = LoginSession.Email;
             currentUser.ModifiedDate = DateTime.UtcNow;
 
             IdentityResult? updateResult = await _userManager.UpdateAsync(currentUser);
@@ -158,14 +154,15 @@ namespace Identity.Application.Services
             throw new UnhandledException(updateResult?.ToString());
         }
 
-        public async Task<bool> UpdatePasswordAsync(string id, string newPassword)
+        public async Task<bool> UpdatePasswordAsync(Guid id, string newPassword)
         {
-            User? currentUser = await _userManager.FindByIdAsync(id) ?? throw new NotFoundException($"User with id: {id} not found!");
+            User? currentUser = await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException($"User with id: {id} not found!");
+            CheckingCurrentPerformingOperation(id, currentUser.TenantId);
 
             ValidatePassword(newPassword);
 
             currentUser.PasswordHash = _passwordHasher.HashPassword(currentUser, newPassword);
-            currentUser.ModifiedBy = !string.IsNullOrEmpty(LoginSession?.Email) ? LoginSession.Email : currentUser.ModifiedBy;
+            currentUser.ModifiedBy = LoginSession.Email;
             currentUser.ModifiedDate = DateTime.UtcNow;
 
             IdentityResult? identityResult = await _userManager.UpdateAsync(currentUser) ?? new();

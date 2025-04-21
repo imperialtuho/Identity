@@ -21,17 +21,11 @@ namespace Identity.Api.Controllers
         /// <param name="isSoftDelete">The param which action will be soft or hard delete</param>
         /// <returns>True/False on based on result of the delete action.</returns>
         [HttpDelete("{userId}")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = ApplicationPolicies.Super)]
-        public async Task<IActionResult> DeleteAsync([FromRoute] string userId, bool isSoftDelete = true)
+        [MapToApiVersion(1.0)]
+        [Authorize]
+        public async Task<IActionResult> DeleteAsync([FromRoute] Guid userId, bool isSoftDelete = true)
         {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest($"{nameof(userId)} is required");
-            }
-
-            bool result = await userService.DeleteByIdAsync(userId, isSoftDelete);
-
-            return Result(result, HttpStatusCode.OK);
+            return Result(await userService.DeleteByIdAsync(userId, isSoftDelete), HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -40,17 +34,11 @@ namespace Identity.Api.Controllers
         /// <param name="id">The id.</param>
         /// <returns>UserDto.</returns>
         [HttpGet("{id}")]
+        [MapToApiVersion(1.0)]
         [AllowAnonymous]
-        public async Task<IActionResult> GetByIdAsync([FromRoute] string id)
+        public async Task<IActionResult> GetByIdAsync([FromRoute] Guid id)
         {
-            if (string.IsNullOrEmpty(id))
-            {
-                return BadRequest($"{nameof(id)} is required");
-            }
-
-            UserDto result = await userService.GetByIdAsync(id);
-
-            return Result(result, HttpStatusCode.OK);
+            return Result(await userService.GetByIdAsync(id), HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -59,17 +47,16 @@ namespace Identity.Api.Controllers
         /// <param name="ids">The ids.</param>
         /// <returns>Return a list of users.</returns>
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetByIdsAsync([CsvBinder] IList<string> ids)
+        [MapToApiVersion(1.0)]
+        [Authorize]
+        public async Task<IActionResult> GetByIdsAsync([CsvBinder] IList<Guid> ids)
         {
             if (ids is null || ids.Count == 0)
             {
                 return BadRequest($"{nameof(ids)} is required");
             }
 
-            IList<UserDto> result = await userService.GetByIdsAsync(ids);
-
-            return Result(result, HttpStatusCode.OK);
+            return Result(await userService.GetByIdsAsync(ids), HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -79,6 +66,7 @@ namespace Identity.Api.Controllers
         /// <param name="isIncludingDeletedUser">Is including deleted user or not.</param>
         /// <returns>Result of searching user by keyword action.</returns>
         [HttpPost("search")]
+        [MapToApiVersion(1.0)]
         [AllowAnonymous]
         public async Task<IActionResult> SearchAsync([FromBody] SearchRequest? request, bool isIncludingDeletedUser = false)
         {
@@ -87,9 +75,7 @@ namespace Identity.Api.Controllers
                 return BadRequest("search payload is required");
             }
 
-            PaginatedResponse<UserDto> result = await userService.SearchAsync(request, isIncludingDeletedUser);
-
-            return Result(result, HttpStatusCode.OK);
+            return Result(await userService.SearchAsync(request, isIncludingDeletedUser), HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -99,22 +85,16 @@ namespace Identity.Api.Controllers
         /// <param name="request">The request.</param>
         /// <returns>UserDto model after successfully update action.</returns>
         [HttpPut("{userId}")]
+        [MapToApiVersion(1.0)]
         [Authorize]
-        public async Task<IActionResult> UpdateAsync([FromRoute] string userId, [FromBody] UpdateUserRequest request)
+        public async Task<IActionResult> UpdateAsync([FromRoute] Guid userId, [FromBody] UpdateUserRequest request)
         {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest($"{nameof(userId)} is required");
-            }
-
             if (!userId.Equals(request.Id))
             {
                 return BadRequest("Id is not matched with request Id");
             }
 
-            UserDto result = await userService.UpdateAsync(userId, request);
-
-            return Result(result, HttpStatusCode.OK);
+            return Result(await userService.UpdateAsync(userId, request), HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -124,17 +104,11 @@ namespace Identity.Api.Controllers
         /// <param name="password">The password.</param>
         /// <returns>True/False based on updating user's password action.</returns>
         [HttpPut("{userId}/password")]
+        [MapToApiVersion(1.0)]
         [Authorize]
-        public async Task<IActionResult> UpdatePasswordAsync([FromRoute] string userId, [FromBody] string password)
+        public async Task<IActionResult> UpdatePasswordAsync([FromRoute] Guid userId, [FromBody] string password)
         {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest($"{nameof(userId)} is required");
-            }
-
-            bool result = await userService.UpdatePasswordAsync(userId, password);
-
-            return Result(result, HttpStatusCode.OK);
+            return Result(await userService.UpdatePasswordAsync(userId, password), HttpStatusCode.OK);
         }
     }
 }

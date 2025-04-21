@@ -62,7 +62,13 @@ namespace Identity.Api
             services.AddApiServices(configuration);
 
             // Add Controllers and Swagger
-            services.AddControllers();
+            services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+                    options.JsonSerializerOptions.PropertyNamingPolicy = null; // Disable camelCase
+                    options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+                });
             services.AddEndpointsApiExplorer();
 
             // Adds Swagger

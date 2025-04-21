@@ -11,55 +11,46 @@ namespace Identity.Domain.Extensions
     public static class ClaimsPrincipalExtension
     {
         private const string Permission = nameof(Permission); // Constant for permission claim type
-        private const string TenantIdClaim = "tenantId"; // Constant for tenant ID claim type
+        private const string TenantIdClaim = "TenantId"; // Constant for tenant ID claim type
 
         /// <summary>
-        /// Retrieves user session details from the <see cref="ClaimsPrincipal"/> object.
-        /// This includes the user's email, user ID, roles, permissions, and tenant ID.
-        /// The method ensures the user session is populated even when some claims might be missing,
-        /// returning a default session if essential claims (such as user ID) are not found.
+        /// Extracts user session information from the specified <see cref="ClaimsPrincipal"/>.
+        /// This includes the user's email, unique identifier (UserId), roles, permissions, and tenant ID.
+        /// Returns a default <see cref="UserSession"/> if the identity is unauthenticated or required claims are missing.
         /// </summary>
-        /// <param name="claimsPrincipal">The <see cref="ClaimsPrincipal"/> representing the authenticated user.</param>
-        /// <returns>A <see cref="UserSession"/> object containing user-specific details like email, user ID, roles, permissions, and tenant ID.</returns>
+        /// <param name="claimsPrincipal">The <see cref="ClaimsPrincipal"/> representing the current authenticated user.</param>
+        /// <returns>
+        /// A populated <see cref="UserSession"/> object if valid claims exist; otherwise, a default <see cref="UserSession"/> instance.
+        /// </returns>
         /// <remarks>
-        /// If the <paramref name="claimsPrincipal"/> is null or lacks required claims (such as user ID),
-        /// the method will return a default <see cref="UserSession"/> object.
+        /// This method ensures safe parsing of claims, including type conversion for user ID and tenant ID.
+        /// It falls back to default values if any expected claim is absent or malformed.
         /// </remarks>
         public static UserSession GetUserSession(this ClaimsPrincipal claimsPrincipal)
         {
-            // Return an empty UserSession if claimsPrincipal is null
-            if (claimsPrincipal == null) return new UserSession();
-
-            // Retrieve the user's email and user ID from the claims
-            string? userEmail = claimsPrincipal.FindFirstValue(ClaimTypes.Name);
-            string? userId = claimsPrincipal.FindFirstValue(ClaimTypes.Sid);
-
-            // Retrieve tenant ID from claims (default to "0" if not present)
-            string? tenantIdStr = claimsPrincipal.FindFirstValue(TenantIdClaim) ?? "0";
-
-            // Return an empty session if user ID is missing
-            if (string.IsNullOrWhiteSpace(userId))
+            if (claimsPrincipal == null || !claimsPrincipal.Identity?.IsAuthenticated == true)
             {
                 return new UserSession();
             }
 
-            // Parse tenant ID string to integer
+            string? email = claimsPrincipal.FindFirstValue(ClaimTypes.Name);
+            string? userIdStr = claimsPrincipal.FindFirstValue(ClaimTypes.Sid);
+            string? tenantIdStr = claimsPrincipal.FindFirstValue(TenantIdClaim);
+
+            if (!Guid.TryParse(userIdStr, out Guid userId) || string.IsNullOrWhiteSpace(email))
+            {
+                return new UserSession();
+            }
+
             int tenantId = int.TryParse(tenantIdStr, out int parsedTenantId) ? parsedTenantId : 0;
 
-            // Retrieve roles and permissions
-            List<string> roles = claimsPrincipal.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
-            List<string> permissions = claimsPrincipal.FindAll(Permission).Select(c => c.Value).ToList();
+            List<string> roles = claimsPrincipal.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+            List<string> permissions = claimsPrincipal.FindAll(Permission).Select(p => p.Value).ToList();
 
-            if (!Guid.TryParse(userId, out Guid userIdGuid))
-            {
-                return new UserSession();
-            }
-
-            // Return a populated UserSession object
             return new UserSession
             {
-                Email = userEmail,
-                UserId = userIdGuid,
+                Email = email,
+                UserId = userId,
                 Roles = roles,
                 Permissions = permissions,
                 TenantId = tenantId

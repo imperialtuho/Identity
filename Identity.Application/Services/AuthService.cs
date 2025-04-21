@@ -1,10 +1,8 @@
 ﻿using AutoMapper;
 using Identity.Application.Configurations.Settings;
 using Identity.Application.Dtos.Users;
-using Identity.Application.Interfaces.Repositories;
 using Identity.Application.Interfaces.Services;
 using Identity.Application.Services.Base;
-using Identity.Domain.Common;
 using Identity.Domain.Constants;
 using Identity.Domain.Entities;
 using Identity.Domain.Exceptions;
@@ -13,34 +11,37 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Claims;
 
 namespace Identity.Application.Services
 {
-    public class AuthService : UserAuthBaseService, IAuthService
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthService"/> class.
+    /// </summary>
+    /// <param name="userManager">The user manager for handling user-related operations.</param>
+    /// <param name="roleManager">The role manager for handling role-related operations.</param>
+    /// <param name="logger">The logger instance used for logging authentication activities.</param>
+    /// <param name="passwordHasher">The password hasher for hashing and verifying passwords.</param>
+    /// <param name="applicationSettings">The application settings used for configuration values.</param>
+    /// <param name="jwtSettings">The JWT settings used for configuration values.</param>
+    /// <param name="mapper">The AutoMapper instance used for object mapping.</param>
+    /// <param name="httpContextAccessor">The HTTP context accessor for accessing user and tenant context.</param>
+    /// <param name="tokenService">The token service for handling user-related operations.</param>
+    /// <exception cref="ArgumentNullException">Thrown if any required dependency is null.</exception>
+    public class AuthService(UserManager<User> userManager,
+        RoleManager<Role> roleManager,
+        ILogger<AuthService> logger,
+        IPasswordHasher<User> passwordHasher,
+        IOptions<ApplicationSettings> applicationSettings,
+        IOptions<JwtSettings> jwtSettings,
+        IMapper mapper,
+        IHttpContextAccessor httpContextAccessor,
+        ITokenService tokenService) : UserAuthBaseService(userManager, roleManager, passwordHasher, applicationSettings, jwtSettings, mapper, httpContextAccessor), IAuthService
     {
-        private readonly ILogger<AuthService> _logger;
-
-        public AuthService(UserManager<User> userManager,
-            RoleManager<Role> roleManager,
-            ILogger<AuthService> logger,
-            IPasswordHasher<User> passwordHasher,
-            ITokenRepository tokenRepository,
-            IRefreshTokenRepository refreshTokenRepository,
-            IOptions<ApplicationSettings> applicationSettings,
-            IMapper mapper,
-            IHttpContextAccessor httpContextAccessor) : base(userManager, roleManager, passwordHasher, refreshTokenRepository, tokenRepository, applicationSettings, mapper, httpContextAccessor)
+        public async Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(Guid userId)
         {
-            _logger = logger;
-        }
-
-        #region Role
-
-        public async Task<GetUserRolesByIdDto> GetUserRolesByIdAsync(string userId)
-        {
-            User? user = await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException($"User with id: {userId} could not be found!");
+            User? user = await _userManager.FindByIdAsync(userId.ToString()) ?? throw new NotFoundException($"User with id: {userId} could not be found!");
 
             IList<string> roles = await _userManager.GetRolesAsync(user);
 
@@ -53,78 +54,55 @@ namespace Identity.Application.Services
             };
         }
 
-        #endregion Role
-
-        #region Register
-
         public async Task<TokenDto> RegisterAsync(RegisterDto registerModel)
         {
-            UserDto userDto = _mapper.Map<UserDto>(registerModel);
-            IList<string>? roles = registerModel.Roles;
-            IList<ClaimDto>? claims = registerModel.Claims;
+            User newUser = await InitializeUser(registerModel);
 
-            User newUser = InitializeUser(userDto, registerModel.Roles);
-            await ValidateModelAsync(newUser, registerModel.Password);
-            await ValidateRolesAsync(roles);
-            ValidateClaims(claims);
+            await AssignDefaultRoles(newUser);
 
-            IdentityResult identityResult = await _userManager.CreateAsync(newUser, registerModel.Password);
-
-            if (identityResult == null || !identityResult.Succeeded)
-            {
-                throw new InvalidCredentialException(ResponseMessage.UnknownError);
-            }
-
-            User? appUser = await _userManager.FindByEmailAsync(newUser.Email!) ?? throw new NotFoundException($"User with {newUser.Email} not found!");
-            IList<string> addingRoles = [ApplicationDefaultRoleValue.AppUser];
-
-            await AddRolesAsync(appUser, addingRoles);
-            await AddClaimsAsync(appUser, claims);
-
-            IList<Claim>? addedClaims = await _userManager.GetClaimsAsync(appUser);
-
-            return await _tokenRepository.CreateTokenAsync(appUser, addingRoles, addedClaims, appUser.TenantId);
+            return await tokenService.CreateAsync(newUser);
         }
 
         public async Task<bool> RegisterWithEmailConfirmAsync(RegisterDto registerModel)
         {
-            UserDto userDto = _mapper.Map<UserDto>(registerModel);
+            User newUser = await InitializeUser(registerModel);
 
-            IList<string>? roles = registerModel.Roles;
-            IList<ClaimDto>? claims = registerModel.Claims;
+            await AssignDefaultRoles(newUser);
 
-            User newUser = InitializeUser(userDto, registerModel.Roles);
-            await ValidateModelAsync(newUser, registerModel.Password);
-            await ValidateRolesAsync(roles);
-            ValidateClaims(claims);
-
-            IdentityResult? identityResult = await _userManager.CreateAsync(newUser, registerModel.Password);
-
-            if (identityResult == null || identityResult.Succeeded)
-            {
-                throw new UnhandledException(ResponseMessage.UnknownError);
-            }
-
-            User? appUser = await _userManager.FindByEmailAsync(newUser.Email!) ?? throw new NotFoundException($"User with {newUser.Email} not found!");
-            IList<string> addingRoles = [ApplicationDefaultRoleValue.AppUser];
-
-            await AddRolesAsync(appUser, addingRoles);
-            await AddClaimsAsync(appUser, claims);
-
-            string token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
+            string token = await _userManager.GenerateEmailConfirmationTokenAsync(newUser);
 
             if (string.IsNullOrEmpty(token))
             {
                 throw new InvalidCredentialException($"{token} is Null or Empty");
             }
 
-            return EmailHelper.SendEmailTwoFactorCode(appUser.Email, token);
+            return EmailHelper.SendEmailTwoFactorCode(newUser.Email, token);
         }
 
-        #endregion Register
-
-        #region Login
-
+        /// <summary>
+        /// Authenticates a user using the provided email and password, then generates an access token upon successful login.
+        /// </summary>
+        /// <param name="email">The email address of the user attempting to log in.</param>
+        /// <param name="password">The password associated with the specified email.</param>
+        /// <returns>
+        /// A <see cref="TokenDto"/> object containing the access token and related information.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the email or password is null, empty, or improperly formatted.
+        /// </exception>
+        /// <exception cref="InvalidCredentialException">
+        /// Thrown when the email does not correspond to a registered user or the password is incorrect.
+        /// </exception>
+        /// <remarks>
+        /// This method performs the following operations:
+        /// <list type="bullet">
+        /// <item>Validates the email format and ensures the password is not null or empty.</item>
+        /// <item>Retrieves the user based on the provided email address.</item>
+        /// <item>Verifies the provided password against the stored hash.</item>
+        /// <item>Fetches the user's roles and claims.</item>
+        /// <item>Generates and returns a JWT token using the user's identity information.</item>
+        /// </list>
+        /// </remarks>
         public async Task<TokenDto> LoginAsync(string email, string password)
         {
             ValidateEmail(email);
@@ -143,12 +121,35 @@ namespace Identity.Application.Services
                 throw new InvalidCredentialException(string.Format(ResponseMessage.InvalidCredentialException, nameof(password)));
             }
 
-            IList<string> roles = await _userManager.GetRolesAsync(loginUser);
-            IList<Claim> claims = await _userManager.GetClaimsAsync(loginUser);
-
-            return await _tokenRepository.CreateTokenAsync(loginUser, roles, claims, loginUser.TenantId);
+            return await tokenService.CreateAsync(loginUser);
         }
 
+        /// <summary>
+        /// Authenticates a user with the provided email and password, requiring that the user's email has been confirmed.
+        /// </summary>
+        /// <param name="email">The email address of the user attempting to log in.</param>
+        /// <param name="password">The password associated with the provided email address.</param>
+        /// <returns>
+        /// A <see cref="TokenDto"/> containing the access token and related authentication information.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the password is null or empty.
+        /// </exception>
+        /// <exception cref="InvalidCredentialException">
+        /// Thrown when the email is invalid, the user does not exist, the password is incorrect, or the email has not been confirmed.
+        /// </exception>
+        /// <remarks>
+        /// This method performs the following operations:
+        /// <list type="bullet">
+        /// <item>Validates the email format.</item>
+        /// <item>Ensures the password is not null or empty.</item>
+        /// <item>Retrieves the user based on the provided email.</item>
+        /// <item>Checks whether the user's email is confirmed.</item>
+        /// <item>Verifies the provided password against the stored password hash.</item>
+        /// <item>Retrieves the user's roles and claims.</item>
+        /// <item>Generates and returns a JWT token if all checks pass.</item>
+        /// </list>
+        /// </remarks>
         public async Task<TokenDto> LoginRequireEmailConfirmAsync(string email, string password)
         {
             if (string.IsNullOrEmpty(password))
@@ -174,12 +175,36 @@ namespace Identity.Application.Services
                 throw new InvalidCredentialException(string.Format(ResponseMessage.InvalidCredentialException, nameof(password)));
             }
 
-            IList<string> roles = await _userManager.GetRolesAsync(loginUser);
-            IList<Claim> claims = await _userManager.GetClaimsAsync(loginUser);
-
-            return await _tokenRepository.CreateTokenAsync(loginUser, roles, claims, loginUser.TenantId);
+            return await tokenService.CreateAsync(loginUser);
         }
 
+        /// <summary>
+        /// Authenticates a user using their email and password, then sends a two-factor authentication (2FA) code to the user's email.
+        /// </summary>
+        /// <param name="email">The email address of the user attempting to log in.</param>
+        /// <param name="password">The password associated with the provided email address.</param>
+        /// <returns>
+        /// A boolean value indicating whether the 2FA code was successfully sent to the user's email.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the password is null or empty.
+        /// </exception>
+        /// <exception cref="InvalidCredentialException">
+        /// Thrown when the user does not exist or the provided credentials are invalid.
+        /// </exception>
+        /// <exception cref="UnhandledException">
+        /// Thrown when the system fails to generate a two-factor authentication token.
+        /// </exception>
+        /// <remarks>
+        /// This method performs the following operations:
+        /// <list type="bullet">
+        /// <item>Validates the email format.</item>
+        /// <item>Ensures the password is not null or empty.</item>
+        /// <item>Retrieves the user by email and checks the password.</item>
+        /// <item>Generates a two-factor authentication token.</item>
+        /// <item>Sends the generated token to the user's email address.</item>
+        /// </list>
+        /// </remarks>
         public async Task<bool> LoginWith2FaAsync(string email, string password)
         {
             ValidateEmail(email);
@@ -213,137 +238,57 @@ namespace Identity.Application.Services
             throw new NotImplementedException();
         }
 
-        #endregion Login
-
-        #region Token
-
-        public async Task<TokenDto> RefreshTokenAsync(TokenDto token)
+        /// <summary>
+        /// Assignes a specific claim to a user if the claim value is valid.
+        /// </summary>
+        /// <param name="userId">The user ID of the user to whom the claim will be added.</param>
+        /// <param name="email">The email of the user to whom the claim will be added.</param>
+        /// <returns><c>true</c> if the claim is successfully added; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the user does not exist.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the claim value is not part of the user's valid claims.
+        /// </exception>
+        /// <remarks>
+        /// This method checks if the claim value is already defined for the user. If valid, it adds the claim using ASP.NET Identity's claim system.
+        /// </remarks>
+        public async Task<bool> AssignClaimsAsync(Guid userId, string email, IList<ClaimDto> claims)
         {
-            ClaimsPrincipal? principal = _tokenRepository.GetPrincipalFromExpiredToken(token.Token) ?? throw new InvalidCredentialException("Invalid token.");
-
-            long tokenExpiryUnix = long.Parse(principal.Claims.Single(p => p.Type == JwtRegisteredClaimNames.Exp).Value);
-            DateTime tokenExpiryDate = DateTime.UnixEpoch.AddSeconds(tokenExpiryUnix);
-
-            if (tokenExpiryDate > DateTime.Now)
-            {
-                throw new InvalidOperationException("The access token has not expired yet.");
-            }
-
-            string jti = principal.Claims.Single(p => p.Type == JwtRegisteredClaimNames.Jti).Value;
-
-            RefreshToken? storedRefreshToken = await _refreshTokenRepository.FindByTokenAsync(token.RefreshToken);
-
-            if (storedRefreshToken == null ||
-                storedRefreshToken.JwtId != jti ||
-                storedRefreshToken.ExpiryDate < DateTime.Now ||
-                storedRefreshToken.Invalidated ||
-                storedRefreshToken.Used)
-            {
-                throw new InvalidCredentialException("Invalid refresh token.");
-            }
-
-            storedRefreshToken.Used = true;
-
-            _refreshTokenRepository.Update(storedRefreshToken);
-            await _refreshTokenRepository.CommitAsync();
-
-            string? email = principal.Claims.Single(p => p.Type == ClaimTypes.Email).Value;
-
-            User? user = await _userManager.FindByEmailAsync(email) ?? throw new NotFoundException($"User with {email} not found!");
-
-            IList<string> roles = await _userManager.GetRolesAsync(user);
-            TokenDto resource = await _tokenRepository.CreateTokenAsync(user, roles);
-
-            return resource;
-        }
-
-        public async Task<bool> InvalidateUserTokensAsync(string email)
-        {
-            User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException($"User with {email} doesn't exist.");
-
-            await _refreshTokenRepository.InvalidateUserTokens(user.Id);
-            await _refreshTokenRepository.CommitAsync();
-
-            return true;
-        }
-
-        public async Task<string> Get2FaTokenAsync(string email)
-        {
-            User? user = await _userManager.FindByEmailAsync(email) ?? throw new NotFoundException($"User with {email} is not found");
-
-            string token = await _userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultProvider);
-
-            if (string.IsNullOrEmpty(token))
-            {
-                throw new UnhandledException(ResponseMessage.UnknownError);
-            }
-
-            EmailHelper.SendEmailTwoFactorCode(user.Email!, token);
-
-            return token;
-        }
-
-        public async Task<TokenDto> Verify2FaTokenAsync(string email, string token)
-        {
-            User? user = await _userManager.FindByEmailAsync(email) ?? throw new NotFoundException($"User with {email} not found!");
-
-            bool verified = await _userManager.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultProvider, token);
-
-            if (!verified)
-            {
-                throw new ArgumentException("OTP does not match, please try again.");
-            }
-
-            IList<string> roles = await _userManager.GetRolesAsync(user);
-            IList<Claim> claims = await _userManager.GetClaimsAsync(user);
-
-            return await _tokenRepository.CreateTokenAsync(user, roles, claims, user.TenantId);
-        }
-
-        public async Task<TokenDto> VerifyEmailTokenAsync(string email, string token)
-        {
-            User? user = await _userManager.FindByEmailAsync(email) ?? throw new NotFoundException($"User with {email} not found!");
-
-            IdentityResult? result = await _userManager.ConfirmEmailAsync(user, token);
-
-            if (result == null || !result.Succeeded)
-            {
-                throw new InvalidCredentialException("Email verification failed, please try again.");
-            }
-
-            IList<string> roles = await _userManager.GetRolesAsync(user);
-            IList<Claim> claims = await _userManager.GetClaimsAsync(user);
-
-            return await _tokenRepository.CreateTokenAsync(user, roles, claims, user.TenantId);
-        }
-
-        #endregion Token
-
-        #region Add Claims and Roles
-
-        public async Task<bool> AddClaimToUserAsync(string email, string claimType, string claimValue)
-        {
-            User? user = await _userManager.FindByEmailAsync(email) ?? throw new ArgumentException("User doesn't exists.");
-
-            IList<Claim>? validClaims = await _userManager.GetClaimsAsync(user);
-
-            if (!validClaims.Select(x => x.Value)!.Contains(claimValue))
-            {
-                throw new InvalidOperationException($"Invalid Claims or Policy value try again!");
-            }
-
-            var claim = new Claim(claimType, claimValue);
-
-            IdentityResult result = await _userManager.AddClaimAsync(user, claim);
-
-            return result.Succeeded;
-        }
-
-        public async Task<bool> AddUserToRolesAsync(string userId, string email, IList<string> roles)
-        {
-            User? user = (await _userManager.FindByEmailAsync(email)
-                       ?? await _userManager.FindByIdAsync(userId))
+            User? user = (await _userManager.FindByIdAsync(userId.ToString()) ?? await _userManager.FindByEmailAsync(email))
                        ?? throw new ArgumentException($"User with {email} doesn't exists.");
+
+            IEnumerable<Claim>? claimsToAdd = claims?.Select(c => new Claim(c.Type, c.Value));
+            IdentityResult addClaimsResult = new IdentityResult();
+
+            if (claimsToAdd != null && claimsToAdd.Any())
+            {
+                addClaimsResult = await _userManager.AddClaimsAsync(user, claimsToAdd);
+            }
+
+            if (!addClaimsResult.Succeeded)
+            {
+                throw new InvalidDataException("Add claims failed.");
+            }
+
+            return addClaimsResult.Succeeded;
+        }
+
+        /// <summary>
+        /// Adds the specified user to the provided list of roles.
+        /// </summary>
+        /// <param name="userId">The ID of the user to assign roles to.</param>
+        /// <param name="roles">The list of roles to assign to the user.</param>
+        /// <returns><c>true</c> if the roles are successfully added; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the user cannot be found by ID.
+        /// </exception>
+        /// <remarks>
+        /// Validates the list of roles before attempting to assign them to the user. Uses ASP.NET Identity role management.
+        /// </remarks>
+        public async Task<bool> AssignRolesAsync(Guid userId, IList<string> roles)
+        {
+            User? user = await _userManager.FindByIdAsync(userId.ToString()) ?? throw new ArgumentException($"User with {userId} doesn't exists.");
 
             await ValidateRolesAsync(roles);
 
@@ -352,54 +297,79 @@ namespace Identity.Application.Services
             return identityResult.Succeeded;
         }
 
-        #endregion Add Claims and Roles
-
-        #region Internal Processes
-
-        private async Task AddRolesAsync(User user, IList<string> roles)
+        /// <summary>
+        /// Removes the specified user found by <paramref name="userId"/> from the named roles.
+        /// </summary>
+        /// <param name="userId">The user found by ID to remove from the named roles.</param>
+        /// <param name="roles">The name of the roles to remove the user from.</param>
+        /// <returns><c>true</c> if the roles are successfully removed; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the user cannot be found by ID.
+        /// </exception>
+        public async Task<bool> UnAssignRolesAsync(Guid userId, IList<string> roles)
         {
-            IdentityResult? addRolesResult = await _userManager.AddToRolesAsync(user, roles);
+            User? user = await _userManager.FindByIdAsync(userId.ToString()) ?? throw new ArgumentException($"User with {userId} doesn't exists.");
 
-            if (!addRolesResult.Succeeded)
-            {
-                _logger.LogError("Failed to add roles {Roles} to user {UserId}. Errors: {Errors}", roles, user.Id, string.Join(", ", addRolesResult.Errors.Select(e => e.Description)));
-                throw new InvalidDataException("Add roles failed.");
-            }
+            await ValidateRolesAsync(roles);
+
+            IdentityResult identityResult = await _userManager.RemoveFromRolesAsync(user, roles);
+
+            return identityResult.Succeeded;
         }
 
-        private async Task AddClaimsAsync(User user, IList<ClaimDto>? claimsInput)
+        /// <summary>
+        /// Initializes a new <see cref="User"/> object based on the registration data, validates the input,
+        /// creates the user in the identity system, and prepares the associated roles and claims for assignment.
+        /// </summary>
+        /// <param name="registerModel">The registration model containing user details, password, roles, and claims.</param>
+        /// <returns>
+        /// A tuple containing the created <see cref="User"/>, a list of assigned role names, and a list of claim DTOs.
+        /// </returns>
+        /// <exception cref="ValidationException">
+        /// Thrown if the user model, roles, or claims are invalid.
+        /// </exception>
+        /// <exception cref="UnhandledException">
+        /// Thrown if the user creation fails with no error information.
+        /// </exception>
+        /// <remarks>
+        /// - Validates the user model and password.
+        /// - Ensures provided roles and claims are valid.
+        /// - Attempts to create the user using the Identity system.
+        /// - If creation fails without clear reason, throws an unhandled exception.
+        /// - Sets auditing fields such as CreatedBy, ModifiedBy, and timestamps.
+        /// </remarks>
+        private async Task<User> InitializeUser(RegisterDto registerModel)
         {
-            IEnumerable<Claim>? claims = claimsInput?.Select(c => new Claim(c.Type, c.Value));
-            var addClaimsResult = new IdentityResult();
+            User newUser = _mapper.Map<User>(registerModel);
 
-            if (claims != null && claims.Any())
+            await ValidateModelAsync(newUser, registerModel.Password);
+
+            newUser.CreatedBy = LoginSession.Email ?? registerModel.UserName;
+            newUser.ModifiedBy = LoginSession.Email ?? registerModel.UserName;
+
+            newUser.CreatedDate = DateTime.UtcNow;
+            newUser.ModifiedDate = DateTime.UtcNow;
+            newUser.TenantId = TenantId;
+
+            IdentityResult? identityResult = await _userManager.CreateAsync(newUser, registerModel.Password);
+
+            if (identityResult == null || !identityResult.Succeeded)
             {
-                addClaimsResult = await _userManager.AddClaimsAsync(user, claims);
+                string errorDescriptions = identityResult?.Errors != null
+                    ? string.Join("; ", identityResult.Errors.Select(e => $"Code: {e.Code}, Description: {e.Description}"))
+                    : "No error details provided.";
+
+                logger.LogError("Failed to create user. Errors: {Errors}", errorDescriptions);
+
+                throw new UnhandledException(ResponseMessage.UnknownError);
             }
 
-            if (!addClaimsResult.Succeeded)
-            {
-                throw new InvalidDataException("Add claims failed.");
-            }
+            return newUser;
         }
 
-        private User InitializeUser(UserDto user, IList<string>? roles)
+        private async Task AssignDefaultRoles(User user)
         {
-            string defaultCreatedBy = ApplicationDefaultRoleValue.AppUser;
-
-            if (roles?.FirstOrDefault(role => role.Equals(ApplicationDefaultRoleValue.Admin)) != null)
-            {
-                defaultCreatedBy = ApplicationDefaultRoleValue.SuperAdmin;
-            }
-
-            User result = _mapper.Map<User>(user);
-            result.CreatedDate = DateTime.UtcNow;
-            result.CreatedBy = defaultCreatedBy;
-            result.TenantId = LoginSession?.TenantId;
-
-            return result;
+            await _userManager.AddToRolesAsync(user, [DefaultRoleName]);
         }
-
-        #endregion Internal Processes
     }
 }

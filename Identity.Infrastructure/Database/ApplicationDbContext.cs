@@ -72,9 +72,6 @@ namespace Identity.Infrastructure.Database
 
             // Call the base class method for IdentityDbContext configuration
             base.OnModelCreating(builder);
-
-            // Apply a global query filter to exclude soft-deleted users by default
-            builder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
         }
     }
 }

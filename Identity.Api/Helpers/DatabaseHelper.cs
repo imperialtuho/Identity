@@ -1,8 +1,9 @@
-﻿using Identity.Domain.Entities;
+﻿using Identity.Application.Configurations.Settings;
+using Identity.Domain.Entities;
 using Identity.Infrastructure.Database;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
+using Microsoft.Extensions.Options;
 
 namespace Identity.Api.Helpers
 {
@@ -32,22 +33,26 @@ namespace Identity.Api.Helpers
             using IServiceScope serviceScope = applicationBuilder.ApplicationServices.CreateScope();
 
             // DbContext
-            var dbContext = serviceScope.ServiceProvider.GetService<ApplicationDbContext>();
+            ApplicationDbContext? dbContext = serviceScope.ServiceProvider.GetService<ApplicationDbContext>();
             // Roles
-            var roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+            RoleManager<Role>? roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
             // Users
-            var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            UserManager<User>? userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            // Access the strongly-typed config
+            IOptions<ApplicationSettings> appSettingsOptions = serviceScope.ServiceProvider.GetRequiredService<IOptions<ApplicationSettings>>();
 
             await dbContext!.Database.EnsureCreatedAsync();
 
             var currentDate = DateTime.UtcNow;
 
+            ApplicationSettings appSettings = appSettingsOptions.Value;
             // Step 1: Seed Permissions
             var permissions = new List<Permission>
             {
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Super, Description = "All permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Read, Description = "Read permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
-                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Write, Description = "Write permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Full,    Description = "All permission",     CreatedDate = currentDate, CreatedBy = SuperAdmin },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Special, Description = "Special permission", CreatedDate = currentDate, CreatedBy = SuperAdmin },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Read,    Description = "Read permission",    CreatedDate = currentDate, CreatedBy = SuperAdmin },
+                new () { Id = Guid.NewGuid(), Name = ApplicationPolicies.Write,   Description = "Write permission",   CreatedDate = currentDate, CreatedBy = SuperAdmin },
             };
 
             foreach (Permission permission in permissions)
@@ -80,8 +85,8 @@ namespace Identity.Api.Helpers
             }
 
             // Define roles with associated permissions
-            await CreateRoleWithPermissionsAsync(SuperAdmin, [ApplicationPolicies.Super]);
-            await CreateRoleWithPermissionsAsync(Admin, ApplicationPolicies.DefaultPolicies);
+            await CreateRoleWithPermissionsAsync(SuperAdmin, [ApplicationPolicies.Full, ApplicationPolicies.Write, ApplicationPolicies.Read, ApplicationPolicies.Special]);
+            await CreateRoleWithPermissionsAsync(Admin, [ApplicationPolicies.Full, ApplicationPolicies.Write, ApplicationPolicies.Read]);
             await CreateRoleWithPermissionsAsync(ApiUser, ApplicationPolicies.DefaultPolicies);
             await CreateRoleWithPermissionsAsync(AppUser, ApplicationPolicies.DefaultPolicies);
 
@@ -100,7 +105,7 @@ namespace Identity.Api.Helpers
                     CreatedDate = currentDate,
                     ModifiedBy = null,
                     ModifiedDate = null,
-                    TenantId = 1,
+                    TenantId = appSettings.TenantId,
                     IsAdmin = true,
                 },
             new()
@@ -117,7 +122,7 @@ namespace Identity.Api.Helpers
                     CreatedDate = currentDate,
                     ModifiedBy = null,
                     ModifiedDate = null,
-                    TenantId = 1,
+                    TenantId = appSettings.TenantId,
                     IsAdmin = false,
                 }];
 
@@ -134,20 +139,6 @@ namespace Identity.Api.Helpers
                     string? roleName = user.IsAdmin ? SuperAdmin : ApiUser;
 
                     await userManager.AddToRoleAsync(user, roleName);
-
-                    // Add claims based on permissions of assigned role
-                    Role? role = await roleManager.FindByNameAsync(roleName) ?? new();
-
-                    // Fetch the role permissions and execute the query immediately
-                    IList<string> rolePermissions = await dbContext.RolePermissions
-                        .Where(rp => rp.RoleId == role.Id)
-                        .Select(rp => rp.Permission.Name)
-                        .ToListAsync();  // Executes and fetches the result
-
-                    foreach (string permission in rolePermissions)
-                    {
-                        await userManager.AddClaimAsync(user, new Claim(nameof(Permission), permission));
-                    }
                 }
             }
         }

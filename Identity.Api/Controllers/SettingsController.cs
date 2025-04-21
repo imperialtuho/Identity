@@ -8,19 +8,31 @@ using Microsoft.Extensions.Options;
 namespace Identity.Api.Controllers
 {
     /// <summary>
-    /// The SettingsController constructor.
+    /// Initializes a new instance of the <see cref="SettingsController"/> class with the specified JWT settings.
     /// </summary>
-    /// <param name="jwtSettings">The jwtSettings.</param>
+    /// <param name="jwtSettings">
+    /// An <see cref="IOptions{JwtSettings}"/> instance containing the configuration settings for JWT authentication.
+    /// </param>
     [ApiVersion("1.0")]
     [Route("api/v{version:ApiVersion}/[controller]")]
     public class SettingsController(IOptions<JwtSettings> jwtSettings) : BaseController
     {
         /// <summary>
-        /// Get JWT settings for API consumer.
+        /// Retrieves the current JWT settings after validating the provided encrypted password.
         /// </summary>
-        /// <param name="password">The password.</param>
-        /// <returns>JwtSettings.</returns>
+        /// <param name="passwordDto">
+        /// A <see cref="PasswordDto"/> containing the Base64-encoded encrypted password to validate the request.
+        /// </param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the JWT settings if the password is valid,
+        /// or a <see cref="BadRequestResult"/> if the password is invalid or improperly formatted.
+        /// </returns>
+        /// <remarks>
+        /// This endpoint is anonymous and requires the client to provide a valid, encrypted password (in Base64 format)
+        /// to access sensitive JWT configuration details. The encrypted password is decrypted and compared against the configured one.
+        /// </remarks>
         [HttpPost("jwt")]
+        [MapToApiVersion(1.0)]
         [AllowAnonymous]
         public IActionResult GetJwtSettings([FromBody] PasswordDto passwordDto)
         {

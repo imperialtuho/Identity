@@ -2,7 +2,7 @@
 
 namespace Identity.Application.Dtos.Permission
 {
-    public class PermissionResponse : BaseDto
+    public class PermissionDto : BaseDto
     {
         public string? Name { get; set; }
         public string? Description { get; set; }

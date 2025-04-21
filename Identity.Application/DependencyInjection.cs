@@ -35,6 +35,7 @@ namespace Identity.Application
             services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IPermissionService, PermissionService>();
+            services.AddScoped<IRoleService, RoleService>();
 
             return services;
         }

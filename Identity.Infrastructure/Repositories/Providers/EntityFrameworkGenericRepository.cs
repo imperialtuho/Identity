@@ -533,12 +533,7 @@ namespace Identity.Infrastructure.Repositories.Providers
         {
             entity.Id = Guid.NewGuid();
             entity.TenantId = LoginSession.TenantId;
-
-            if (string.IsNullOrEmpty(entity.CreatedBy))
-            {
-                entity.CreatedBy = LoginSession.Email;
-            }
-
+            entity.CreatedBy = LoginSession.Email;
             entity.CreatedDate = DateTime.UtcNow;
             entity.ModifiedDate = DateTime.UtcNow;
             entity.ModifiedBy = LoginSession.Email;

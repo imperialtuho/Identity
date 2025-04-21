@@ -2,8 +2,9 @@
 {
     public enum DeleteRequestStatus
     {
+        New,
+        Pending,
         Succeed,
         Failed,
-        Pending
     }
 }

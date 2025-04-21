@@ -14,21 +14,31 @@ namespace Identity.Api.Controllers
     public class UserRolesController(IAuthService authService) : BaseController
     {
         /// <summary>
-        /// Adds roles.
+        /// Assign roles to user.
         /// </summary>
-        /// <param name="userId">The userId.</param>
-        /// <param name="request">The request.</param>
+        /// <param name="userId">The ID of user.</param>
+        /// <param name="roles">The roles to assign.</param>
         /// <returns>System.Task{IActionResult}.</returns>
-        [HttpPost("{userId}/roles")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{ApplicationPolicies.Super}, {ApplicationPolicies.Read}, {ApplicationPolicies.Write}")]
-        public async Task<IActionResult> AddRoleToUserAsync([FromRoute] string userId, [FromBody] RoleDto request)
+        [HttpPost("assign/{userId}")]
+        [MapToApiVersion(1.0)]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
+        public async Task<IActionResult> AssignRoleToUserAsync([FromRoute] Guid userId, IList<string> roles)
         {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest($"{nameof(userId)} is required");
-            }
+            return Result(await authService.AssignRolesAsync(userId, roles), HttpStatusCode.OK);
+        }
 
-            return Result(await authService.AddUserToRolesAsync(userId, request.Email, request.Roles), HttpStatusCode.Created);
+        /// <summary>
+        /// Assign roles to user.
+        /// </summary>
+        /// <param name="userId">The ID of user.</param>
+        /// <param name="roles">The roles to assign.</param>
+        /// <returns>System.Task{IActionResult}.</returns>
+        [HttpPost("unassign/{userId}")]
+        [MapToApiVersion(1.0)]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
+        public async Task<IActionResult> UnAssignRoleToUserAsync([FromRoute] Guid userId, IList<string> roles)
+        {
+            return Result(await authService.UnAssignRolesAsync(userId, roles), HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -36,15 +46,11 @@ namespace Identity.Api.Controllers
         /// </summary>
         /// <param name="userId">The userId.</param>
         /// <returns>GetUserRolesByIdDto.</returns>
-        [HttpGet("{userId}/roles")]
-        [Authorize(Roles = $"{SuperAdmin}, {Admin}", Policy = $"{ApplicationPolicies.Super}, {ApplicationPolicies.Read}")]
-        public async Task<IActionResult> GetUserRolesByUserIdAsync(string userId)
+        [HttpGet("{userId}")]
+        [MapToApiVersion(1.0)]
+        [Authorize(Roles = $"{SuperAdmin}, {Admin}")]
+        public async Task<IActionResult> GetUserRolesByUserIdAsync(Guid userId)
         {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest($"{nameof(userId)} is required");
-            }
-
             GetUserRolesByIdDto result = await authService.GetUserRolesByIdAsync(userId);
 
             return Result(result, HttpStatusCode.OK);

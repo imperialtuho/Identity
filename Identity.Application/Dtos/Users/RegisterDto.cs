@@ -28,11 +28,5 @@ namespace Identity.Application.Dtos.Users
 
         [Url]
         public string? ProfilePictureUrl { get; set; }
-
-        public bool IsManager { get; set; }
-
-        public IList<string>? Roles { get; set; }
-
-        public IList<ClaimDto>? Claims { get; set; }
     }
 }

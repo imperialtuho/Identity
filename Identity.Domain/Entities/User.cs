@@ -34,7 +34,7 @@ namespace Identity.Domain.Entities
 
         public bool IsDeleted { get; set; }
 
-        public int? TenantId { get; set; }
+        public int TenantId { get; set; }
 
         public bool IsAdmin { get; set; }
 
